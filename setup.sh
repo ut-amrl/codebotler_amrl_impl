@@ -27,6 +27,7 @@ cd ../enml
 make -j12
 
 cd ../graph_navigation
+gut checkout nl_to_robot_code
 mkdir build
 cd build 
 cmake ..
