@@ -1,0 +1,15 @@
+{
+    "front door" : [39, 65], 
+    "elevator" : [12, 64.5],
+    "right meeting room": [61.7, 35.6],
+    "left meeting room": [16.5, 35],
+    "resting area": [46.6, 67.7],
+    "student office" : [14.5, 51],
+    "main meeting room": [52.4, 64.8],
+    "compartment 1": [3.6, 56],
+    "start location": [2.3, 56],
+    "tv room": [12, 72],
+    "trash can": [12.5, 69],
+    "work station" : [7.5, 74],
+    "zichao's office": [4.5, 69]
+}
