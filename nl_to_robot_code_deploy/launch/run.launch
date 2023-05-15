@@ -1,9 +1,0 @@
-<launch>
-  <node pkg="nl_to_robot_code_deploy" type="run_arbiter.sh" name="run_arbiter" />
-  <node pkg="nl_to_robot_code_deploy" type="run_webviz.sh" name="run_webviz"/>
-  <node pkg="nl_to_robot_code_deploy" type="run_enml.sh" name="run_enml" />
-  <node pkg="nl_to_robot_code_deploy" type="run_graphnav.sh" name="run_graphnav"  output="screen" />
-  <node pkg="nl_to_robot_code_deploy" type="gui.py" name="run_gui" output="screen" />
-  <node pkg="nl_to_robot_code_deploy" type="interface.py" name="run_main"  output="screen" />
-  <include file="$(find zed_wrapper)/launch/zed.launch" />
-</launch>
