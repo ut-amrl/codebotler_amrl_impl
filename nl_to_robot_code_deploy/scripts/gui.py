@@ -34,19 +34,12 @@ class MyGUI:
         master.title("My GUI")
         master.attributes('-fullscreen', True)  # set full screen mode
 
-        # create a frame to hold the buttons
-        button_frame = tk.Frame(master)
-        button_frame.pack(side=tk.BOTTOM, fill=tk.X)
-
-        # create two hidden buttons
-        self.left_button = tk.Button(button_frame, text="Yes!", command=self.response_yes, width=15, height=15, bg="#ff0000")
-        self.left_button.pack_forget()
-
-        self.right_button = tk.Button(button_frame, text="No!", command=self.response_no, width=15, height=15, bg="#ff0000")
-        self.right_button.pack_forget()
-
-        self.label = tk.Label(master, text="hello", font=("Helvetica", 20))
-        self.label.pack()
+        # # create a frame to hold the buttons
+        self.button_frame = tk.Frame(master)
+        self.button_frame.pack(side=tk.BOTTOM, fill=tk.X)
+        
+        self.label = tk.Label(master, text="Jackal :)", font=("Helvetica", 120))
+        self.label.pack(anchor=tk.CENTER, expand=True)
 
         rospy.init_node('gui_interface', disable_signals=True)
         self.robot_say_sub = rospy.Subscriber('robot_say', String, self.message_cb)
@@ -54,9 +47,12 @@ class MyGUI:
         self.human_response_pub = rospy.Publisher('human_response', String, queue_size=10)
 
         self.options = [] # hardcode
+        self.button_list = []
 
     def update_label(self, text):
         # Create a gTTS object and specify the language
+        self.label.config(text=f"Robot says: \n \"{text}\"", font=("Helvetica", 80), 
+                          wraplength=int(self.master.winfo_screenwidth() * 0.8), justify="center")
         tts = gTTS(text=text, lang='en')
         current_path = os.path.abspath(__file__)
         file_path = os.path.join(os.path.dirname(current_path), 'audio', 'hello.mp3')
@@ -66,39 +62,37 @@ class MyGUI:
 
         # Play the audio file
         os.system('mpg321 {}'.format(file_path))
-        self.label.config(text=f"Robot says: \"{text}\"", font=("Helvetica", 20))
 
     def message_cb(self, msg):
         print("message:", msg.data)
         self.update_label(msg.data)
-        
+        self.label.config(text="Jackal :)", font=("Helvetica", 120))
+        self.label.pack(anchor=tk.CENTER, expand=True)
     
+    def on_button_click(self, option):
+        # call another function here
+        print("answered {}".format(option))
+        for b in self.button_list:
+            b.destroy()
+        self.human_response_pub.publish(option)
+        self.label.config(text="Jackal :)", font=("Helvetica", 120))
+        self.label.pack(anchor=tk.CENTER, expand=True)
+
     def ask_cb(self, msg):
         msg = eval(msg.data)
         question = msg[-1]
+        options = msg[:-1]
         self.update_label(question)
 
-        self.options = msg[:-1]
-        yes_ans = listen_for_yes_or_no()
-        if yes_ans: 
-            self.human_response_pub.publish(self.options[0])
-        else:
-            self.human_response_pub.publish(self.options[1])
+        # create a button with text "Click me!"
+        self.button_list.clear()
+        for option in options:
+            button = tk.Button(self.button_frame, text=option, font=("Helvetica", 40), command=lambda key=option : self.on_button_click(key))
+            button.config(width=10, height=10, pady=10)
+            button.pack(side="left", fill="x", expand=True)
 
-        self.left_button.pack(side=tk.LEFT, padx=80, pady=40)
-        self.right_button.pack(side=tk.RIGHT, padx=80, pady=40)
+            self.button_list.append(button)
 
-    def response_yes(self):
-        print("answered {}".format(self.options[0]))
-        self.human_response_pub.publish(self.options[0])
-        self.left_button.pack_forget()
-        self.right_button.pack_forget()
-
-    def response_no(self):
-        print("answered {}".format(self.options[1]))
-        self.human_response_pub.publish(self.options[1])
-        self.left_button.pack_forget()
-        self.right_button.pack_forget()
 
 
 if __name__ == '__main__':

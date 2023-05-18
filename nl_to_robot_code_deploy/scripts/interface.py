@@ -40,7 +40,7 @@ def go_to(location_str):
     if not all_rooms.get(location_str):
         print(f"{location_str} does not exist")
         return 
-    gx, gy = all_rooms[location_str]
+    gx, gy, gtheta = all_rooms[location_str]
     goal_loc = np.array([gx,gy])
     print("goal loc: ", goal_loc)
     x = STATE["x"]
@@ -50,10 +50,11 @@ def go_to(location_str):
     if np.linalg.norm(curr_loc-goal_loc) < 1:
         return
 
-    goal = PoseStamped()
-    goal.pose.position.x = gx
-    goal.pose.position.y = gy
-    goal.pose.orientation.w = 1
+    goal = Localization2DMsg()
+    goal.pose.x = gx
+    goal.pose.y = gy
+    goal.pose.theta = gtheta
+    goal.map = "map"
 
     goal_pub.publish(goal)
 
@@ -64,8 +65,8 @@ def go_to(location_str):
         rate.sleep()
 
     print("goal reached")
-    print("start sleeping: 5s", navigation_status)
-    time.sleep(3)
+    print("start sleeping: 2s", navigation_status)
+    time.sleep(2)
     print("finish sleeping")
     # finish and sleep 2s to allow me to record
 
@@ -73,7 +74,7 @@ def get_current_location():
     global STATE
     x = STATE["x"]
     y = STATE["y"]
-    all_rooms["start location"] = (x,y)
+    all_rooms["start location"] = (x,y,0)
     print("start position is", (x,y))
     # curr = np.array([x,y])
     # min_dist = 100
@@ -86,14 +87,47 @@ def get_current_location():
     #         loc = key
     return "start location"
 
+def save_img(img, boxes_filt):
+    print(boxes_filt, img.shape)
+    img = img.numpy().transpose((1, 2, 0)).astype(np.uint8)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+    # Define the two corners pixel locations of the bounding box
+    if len(boxes_filt) == 0:
+        current_path = os.path.abspath(__file__)
+        file_path = os.path.join(os.path.dirname(current_path), 'image', 'img.jpg')
+        cv2.imwrite(file_path, img)
+        return 
+    box = boxes_filt[0]
+    box = box * torch.Tensor([img.shape[1], img.shape[0], img.shape[1], img.shape[0]])
+    print(boxes_filt)
+    # from xywh to xyxy
+    box[:2] -= box[2:] / 2
+    box[2:] += box[:2]
+    x0, y0, x1, y1 = box.detach().cpu().numpy()
+    x0, y0, x1, y1 = int(x0), int(y0), int(x1), int(y1)
+
+    corner1 = (x0,y0)
+    corner2 = (x1,y1)
+    print(corner1, corner2, img.shape)
+
+    # Draw the bounding box on the image
+    color = (0, 255, 0) # Green color
+    thickness = 2
+    img = cv2.rectangle(img, corner1, corner2, color, thickness)
+    current_path = os.path.abspath(__file__)
+    file_path = os.path.join(os.path.dirname(current_path), 'image', 'img.jpg')
+    cv2.imwrite(file_path, img)
 
 def object_in_room(text_prompt):
+    print("is in room", text_prompt)
     img = get_processed_image()
 
     print(img.shape)
     boxes_filt, pred_phrases = get_grounding_output(
         DINO_MODEL, img, text_prompt, box_threshold, text_threshold, device=device
     )
+    save_img(img, boxes_filt)
     if len(pred_phrases) > 0:
         print(f"{text_prompt} is in room" )
     else:
@@ -108,11 +142,12 @@ def object_in_room(text_prompt):
     # return False
 
 def is_in_room(text_prompt):
+    print("is in room", text_prompt)
     img = get_processed_image()
-    print(img.shape)
     boxes_filt, pred_phrases = get_grounding_output(
-        DINO_MODEL, img, "human", box_threshold, text_threshold, device=device
+        DINO_MODEL, img, text_prompt, box_threshold, text_threshold, device=device
     )
+    save_img(img, boxes_filt)
     return len(pred_phrases) > 0
     # object_location = object_locations.get(object, None)
     # return object_location == get_current_location()
@@ -165,6 +200,10 @@ def get_processed_image():
     rgb_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB).astype(np.float32)
     rgb_img = torch.tensor(rgb_img)
     rgb_img = rgb_img.permute(2,0,1)
+    print("rgb img shape", rgb_img.shape)
+    # only use the left image
+    rgb_img = rgb_img[:,:, :rgb_img.shape[2] // 2]
+    print("rgb img shape2", rgb_img.shape)
     return rgb_img
 
 def initialize_DINO():
@@ -182,7 +221,7 @@ def goal_cb(nav_status):
 
 if __name__ =="__main__":
     rospy.init_node('ros_interface')
-    goal_pub = rospy.Publisher('/move_base_simple/goal', PoseStamped, queue_size=10)
+    goal_pub = rospy.Publisher('/move_base_simple/goal_amrl', Localization2DMsg, queue_size=10)
     robot_says_pub = rospy.Publisher('robot_say', String, queue_size=10)
     robot_asks_pub = rospy.Publisher('robot_ask', String, queue_size=10)
 

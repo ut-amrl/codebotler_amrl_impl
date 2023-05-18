@@ -134,8 +134,8 @@ if __name__ == "__main__":
     sam_checkpoint = base_dir + "sam_vit_h_4b8939.pth"
 
     output_dir = None
-    box_threshold = 0.3
-    text_threshold = 0.3
+    box_threshold = 0.45
+    text_threshold = 0.4
     device = "cuda"
 
     image_pil, image = load_image("/home/amrl_user/zichaohu/img.png")
