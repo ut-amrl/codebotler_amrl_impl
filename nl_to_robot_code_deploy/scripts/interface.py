@@ -15,12 +15,12 @@ import json
 
 from grounded_dino_interface import *
 
-box_threshold = 0.4
+box_threshold = 0.6
 text_threshold = 0.4
 device="cuda"
 STATE = {"x" : -1, "y" : -1, "theta":-1}
 current_path = os.path.abspath(__file__)
-file_path = os.path.join(os.path.dirname(current_path), 'ahg_locations.json')
+file_path = os.path.join(os.path.dirname(current_path), 'ahg_floor2_locations.json')
 with open(file_path, "r") as f:
         all_rooms = json.load(f)
 
@@ -74,8 +74,9 @@ def get_current_location():
     global STATE
     x = STATE["x"]
     y = STATE["y"]
-    all_rooms["start location"] = (x,y,0)
-    print("start position is", (x,y))
+    theta = STATE["theta"]
+    all_rooms["start location"] = (x,y,theta)
+    print("start position is", (x,y, theta))
     # curr = np.array([x,y])
     # min_dist = 100
     # loc = "nowhere"
@@ -158,6 +159,7 @@ def say(message):
     robot_says_pub.publish(msg)
     print(f"Robot says: \"{message}\"")
     rate.sleep()
+    time.sleep(1) # temporary fix for file conflicting
 
 def get_all_rooms():
     global all_rooms
