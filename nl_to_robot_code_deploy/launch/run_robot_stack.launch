@@ -6,7 +6,7 @@
     <remap from="scan" to="velodyne_2dscan"/>
   </node>
   <node pkg="graph_navigation" type="navigation" name="navigation" 
-    args='-robot_config $(find graph_navigation)/config/navigation.lua' cwd="node" />
+    args='-robot_config $(find nl_to_robot_code_deploy)/config/navigation.lua' cwd="node" />
   <node pkg="enml" type="enml" name="enml" 
       args='-c="$(find enml)/config" -r "ut_jackal.lua"' 
       cwd="node" />

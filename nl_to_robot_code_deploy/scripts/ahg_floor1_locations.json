@@ -1,11 +1,8 @@
 {
     "kitchen": [41.17, 76.77, -2.35],
-    "front door": [44.18, 74.14, -0.98],
     "elevator": [18.27, 78.91, -2.41],
-    "main conference room": [51.01, 77.86, -2.51],
-    "art lab's rest area": [69.08, 63.96, -3.09],
-    "art lab's couch area": [69.60, 62.75, -0.81],
-    "art lab's maker space": [69.65, 57.94, -2.91],
-    "art lab's work area": [68.84, 49, -0.34],
-    "art lab's sofa area": [67.93, 47.57, -2.76]
+    "fine art lab's rocking chair area": [69.08, 63.96, -3.09],
+    "fine art lab's high table area": [70.97, 58.60, -2.83],
+    "fine art lab's couch area": [68.05, 47.92, -2.59],
+    "fine art lab's lockers area": [67.82, 44.79, -1.77]
 }
