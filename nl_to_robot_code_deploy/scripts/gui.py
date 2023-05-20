@@ -1,12 +1,15 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+from utilities import *
+cd_rel(".")
 
-import rospy 
+import rospy
 from std_msgs.msg import String
 
 import tkinter as tk
 from gtts import gTTS
 import os
 import speech_recognition as sr
+
 
 def listen_for_yes_or_no():
     r = sr.Recognizer()
@@ -17,9 +20,9 @@ def listen_for_yes_or_no():
             try:
                 text = r.recognize_google(audio)
                 print(f"You said: {text}")
-                if  "yes" in text.lower():
+                if "yes" in text.lower():
                     return True
-                    
+
                 elif "no" in text.lower():
                     return False
             except sr.UnknownValueError:
@@ -37,7 +40,7 @@ class MyGUI:
         # # create a frame to hold the buttons
         self.button_frame = tk.Frame(master)
         self.button_frame.pack(side=tk.BOTTOM, fill=tk.X)
-        
+
         self.label = tk.Label(master, text="Jackal :)", font=("Helvetica", 120))
         self.label.pack(anchor=tk.CENTER, expand=True)
 
@@ -46,15 +49,18 @@ class MyGUI:
         self.robot_ask_sub = rospy.Subscriber('robot_ask', String, self.ask_cb)
         self.human_response_pub = rospy.Publisher('human_response', String, queue_size=10)
 
-        self.options = [] # hardcode
+        self.options = []  # hardcode
         self.button_list = []
 
     def update_label(self, text):
         # Create a gTTS object and specify the language
-        self.label.config(text=f"Robot says: \n \"{text}\"", font=("Helvetica", 80), 
+        self.label.config(text=f"Robot says: \n \"{text}\"", font=("Helvetica", 80),
                           wraplength=int(self.master.winfo_screenwidth() * 0.8), justify="center")
         tts = gTTS(text=text, lang='en')
         current_path = os.path.abspath(__file__)
+
+        if not os.path.exists(os.path.join(os.path.dirname(current_path), 'audio')):
+            os.makedirs(os.path.join(os.path.dirname(current_path), 'audio'))
         file_path = os.path.join(os.path.dirname(current_path), 'audio', 'hello.mp3')
 
         # Save the audio file
@@ -68,7 +74,7 @@ class MyGUI:
         self.update_label(msg.data)
         self.label.config(text="Jackal :)", font=("Helvetica", 120))
         self.label.pack(anchor=tk.CENTER, expand=True)
-    
+
     def on_button_click(self, option):
         # call another function here
         print("answered {}".format(option))
@@ -87,12 +93,11 @@ class MyGUI:
         # create a button with text "Click me!"
         self.button_list.clear()
         for option in options:
-            button = tk.Button(self.button_frame, text=option, font=("Helvetica", 40), command=lambda key=option : self.on_button_click(key))
+            button = tk.Button(self.button_frame, text=option, font=("Helvetica", 40), command=lambda key=option: self.on_button_click(key))
             button.config(width=10, height=10, pady=10)
             button.pack(side="left", fill="x", expand=True)
 
             self.button_list.append(button)
-
 
 
 if __name__ == '__main__':

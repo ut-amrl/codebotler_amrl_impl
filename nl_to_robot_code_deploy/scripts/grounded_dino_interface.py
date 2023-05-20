@@ -1,27 +1,29 @@
+#!/usr/bin/env python3
+from utilities import *
+add_pythonpath_load_amrl_msgs_cd("../../third_party/Grounded-Segment-Anything/GroundingDINO", ".")
+add_pythonpath("../../third_party/Grounded-Segment-Anything/segment_anything")
+
 import argparse
 import os
 import copy
-
 import numpy as np
 import json
 import torch
 from PIL import Image, ImageDraw, ImageFont
+import sys
 
-import sys 
-sys.path.append("/home/amrl_user/zichaohu/robot_commands/Grounded-Segment-Anything")
-# Grounding DINO
-import GroundingDINO.groundingdino.datasets.transforms as T
-from GroundingDINO.groundingdino.models import build_model
-from GroundingDINO.groundingdino.util import box_ops
-from GroundingDINO.groundingdino.util.slconfig import SLConfig
-from GroundingDINO.groundingdino.util.utils import clean_state_dict, get_phrases_from_posmap
+# grounding dino
+from groundingdino.datasets import transforms as T
+from groundingdino.models import build_model
+from groundingdino.util import box_ops
+from groundingdino.util.slconfig import SLConfig
+from groundingdino.util.utils import clean_state_dict, get_phrases_from_posmap
 
 # segment anything
-from segment_anything import build_sam, SamPredictor 
+from segment_anything import build_sam, SamPredictor
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-
 
 
 def plot_boxes_to_image(image_pil, tgt):
@@ -125,12 +127,12 @@ def get_grounding_output(model, image, caption, box_threshold, text_threshold, w
             pred_phrases.append(pred_phrase)
 
     return boxes_filt, pred_phrases
-    
+
 
 if __name__ == "__main__":
     base_dir = "/home/amrl_user/zichaohu/robot_commands/Grounded-Segment-Anything/"
-    config_file = base_dir + "GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py" # change the path of the model config file
-    grounded_checkpoint = base_dir + "groundingdino_swint_ogc.pth" # change the path of the model
+    config_file = base_dir + "GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py"  # change the path of the model config file
+    grounded_checkpoint = base_dir + "groundingdino_swint_ogc.pth"  # change the path of the model
     sam_checkpoint = base_dir + "sam_vit_h_4b8939.pth"
 
     output_dir = None

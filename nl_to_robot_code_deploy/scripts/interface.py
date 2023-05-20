@@ -1,18 +1,17 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+from utilities import *
+cd_rel(".")
+load_amrl_msgs()
 import time 
-import rospy 
-import roslib
-roslib.load_manifest('amrl_msgs')
+import rospy
 from amrl_msgs.msg import Localization2DMsg
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import String
 from amrl_msgs.msg import NavStatusMsg
 import numpy as np 
 from sensor_msgs.msg import CompressedImage
-import cv2 
-
-import json 
-
+import cv2
+import json
 from grounded_dino_interface import *
 
 box_threshold = 0.6
@@ -20,7 +19,7 @@ text_threshold = 0.4
 device="cuda"
 STATE = {"x" : -1, "y" : -1, "theta":-1}
 current_path = os.path.abspath(__file__)
-file_path = os.path.join(os.path.dirname(current_path), 'ahg_floor2_locations.json')
+file_path = os.path.join(os.path.dirname(current_path), 'ahg_locations.json')
 with open(file_path, "r") as f:
         all_rooms = json.load(f)
 
@@ -209,7 +208,8 @@ def get_processed_image():
     return rgb_img
 
 def initialize_DINO():
-    base_dir = "/home/amrl_user/zichaohu/robot_commands/Grounded-Segment-Anything/"
+    current_script_dir = os.path.dirname(os.path.realpath(__file__))
+    base_dir = os.path.join(current_script_dir, "../../third_party/Grounded-Segment-Anything")
     config_file = base_dir + "GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py" # change the path of the model config file
     grounded_checkpoint = base_dir + "groundingdino_swint_ogc.pth" # change the path of the model
     device = "cuda"
@@ -235,6 +235,4 @@ if __name__ =="__main__":
     DINO_MODEL = initialize_DINO()
     rate = rospy.Rate(10)
     rospy.spin()
-
-    
  
