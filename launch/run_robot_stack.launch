@@ -1,0 +1,20 @@
+<launch>
+    <!-- Jackal autonomy stack -->
+    <include file="$(find ut_jackal)/launch/autonomy.launch" />
+
+    <node name="gui"
+        pkg="nl_to_robot_code_deploy"
+        type="gui.py"
+        cwd="node"
+        respawn="true"
+        respawn_delay="2"
+        output="screen"/>
+
+    <node name="interface"
+        pkg="nl_to_robot_code_deploy"
+        type="interface.py"
+        cwd="node"
+        respawn="true"
+        respawn_delay="2"
+        output="screen"/>
+</launch>
