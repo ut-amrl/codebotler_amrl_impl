@@ -46,9 +46,9 @@ cd ../../
 
 # Give execute permissions to all scripts
 find . -maxdepth 1 \( -name "*.py" -o -name "*.sh" \) -exec chmod +x {} \;
-cd nl_to_robot_code_deploy/scripts
+cd src/
 find . -maxdepth 1 \( -name "*.py" -o -name "*.sh" \) -exec chmod +x {} \;
-cd ../..
+cd ../
 cd third_party/robot_commands
 find . -maxdepth 1 \( -name "*.py" -o -name "*.sh" \) -exec chmod +x {} \;
 cd ../..

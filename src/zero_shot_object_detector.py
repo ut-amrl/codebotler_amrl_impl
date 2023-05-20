@@ -13,6 +13,7 @@ from groundingdino.util.inference import load_model, load_image, predict, annota
 from groundingdino.datasets import transforms as T
 import numpy as np
 import matplotlib.pyplot as plt
+from PIL import Image
 
 
 class GroundingDINO:
@@ -48,6 +49,7 @@ class GroundingDINO:
                 T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
             ]
         )
+        img = Image.fromarray(img)
         image = np.asarray(img)
         image_transformed, _ = transform(img, None)
         image_transformed = image_transformed.to(self.device)

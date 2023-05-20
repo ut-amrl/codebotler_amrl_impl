@@ -29,7 +29,7 @@ class RobotActions:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         config_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../third_party/GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py")
         weights_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../third_party/GroundingDINO", "weights", "groundingdino_swint_ogc.pth")
-        self.object_detector_model = GroundingDINO(box_threshold=self.DATA['box_threshold'], text_threshold=self.DATA['text_threshold'], device=self.device, config_path=config_path, weights_path=weights_path)
+        self.object_detector_model = GroundingDINO(box_threshold=self.DATA['DINO']['box_threshold'], text_threshold=self.DATA['DINO']['text_threshold'], device=self.device, config_path=config_path, weights_path=weights_path)
         self.latest_image_data = None
         self.current_code_string = None
         self.nav_status = None
@@ -42,7 +42,7 @@ class RobotActions:
         self.robot_ask_pub = rospy.Publisher(self.DATA['ROBOT_ASK_TOPIC'], String, queue_size=1)
 
         # Subscribers
-        rospy.Subscriber(self.DATA['PYTHON_COMMANDS_TOPIC'], String, self.python_cmds_callback, queue_size=1)
+        rospy.Subscriber('/chat_commands', String, self.python_cmds_callback, queue_size=1)
         rospy.Subscriber(self.DATA['LOCALIZATION_TOPIC'], Localization2DMsg, self.localization_callback, queue_size=1)
         rospy.Subscriber(self.DATA['NAV_STATUS_TOPIC'], NavStatusMsg, self.nav_status_callback, queue_size=1)
         rospy.Subscriber(self.DATA['CAM_IMG_TOPIC'], CompressedImage, self.image_callback, queue_size=1, buff_size=2**32)
@@ -69,7 +69,6 @@ class RobotActions:
         goal_msg.pose.x = self.DATA['LOCATIONS'][self.DATA['MAP']][location][0]
         goal_msg.pose.y = self.DATA['LOCATIONS'][self.DATA['MAP']][location][1]
         goal_msg.pose.theta = self.DATA['LOCATIONS'][self.DATA['MAP']][location][2]
-        goal_msg.frame_id = "map"
         self.nav_goal_pub.publish(goal_msg)
         time.sleep(2)
         while self.nav_status == 0:  # to ensure that the robot has started moving

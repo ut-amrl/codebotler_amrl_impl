@@ -63,6 +63,9 @@ def process_command_string(command_string):
         return re.sub(r'(\b[A-Za-z_][A-Za-z0-9_]*\b)\((.*?)\)', replacer, input_str)
 
     def fn3(input_str):
-        return re.sub(r'(\b[A-Za-z_][A-Za-z0-9_]*\b\()', r'self.\1', input_str)
+        # return re.sub(r'(\b[A-Za-z_][A-Za-z0-9_]*\b\()', r'self.\1', input_str)
+        return re.sub(r'\b((?:[A-Za-z_][A-Za-z0-9_]*\.)?)([A-Za-z_][A-Za-z0-9_]*\b)\(', 
+                  lambda m: m.group() if m.group(1) == ("time." or "numpy." or "np.") else "self." + m.group(), 
+                  input_str)
 
     return fn3(fn2(command_string)), fn1(command_string)

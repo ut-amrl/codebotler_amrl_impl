@@ -1,6 +1,6 @@
 **/*.mp3
-# **/*.jpg
-# **/images/
+**/*.jpg
+**/images/
 **/__pycache__/
 **/.vscode/
 **/.openai_api_key
