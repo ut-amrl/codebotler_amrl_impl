@@ -7,17 +7,18 @@ echo $ut_jackal_path
 graph_nav_path=$(realpath third_party/ut_jackal/graph_navigation)
 echo $graph_nav_path
 
-cd third_party/Grounded-Segment-Anything
-export AM_I_DOCKER=False
-export BUILD_WITH_CUDA=True
-export CUDA_HOME=/usr/local/cuda-11.7/
-python -m pip install -e GroundingDINO
+cd third_party/GroundingDINO
+pip install -q -e .
+
+mkdir weights/
+cd weights/
 if test -f groundingdino_swint_ogc.pth; then
-  echo "model already exists, skipping installation"
+  echo "model weights already exists, skipping installation"
 else
-  echo "wget model"
-  wget https://github.com/IDEA-Research/GroundingDINO/releases/download/v0.1.0-alpha/groundingdino_swint_ogc.pth
+  echo "downloading model weights"
+  wget -q https://github.com/IDEA-Research/GroundingDINO/releases/download/v0.1.0-alpha/groundingdino_swint_ogc.pth
 fi
+cd ../
 
 if [[ $ROS_PACKAGE_PATH == *"ut_jackal"* ]]; then
     echo "Removing ut_jackal from ROS_PACKAGE_PATH..."

@@ -4,11 +4,11 @@ cd_rel(".")
 
 import rospy
 from std_msgs.msg import String
-
 import tkinter as tk
 from gtts import gTTS
 import os
 import speech_recognition as sr
+import yaml
 
 
 def listen_for_yes_or_no():
@@ -33,6 +33,8 @@ def listen_for_yes_or_no():
 
 class MyGUI:
     def __init__(self, master):
+        with open('../data.yaml', 'r') as f:
+            self.DATA = yaml.safe_load(f)
         self.master = master
         master.title("My GUI")
         master.attributes('-fullscreen', True)  # set full screen mode
@@ -43,9 +45,9 @@ class MyGUI:
         self.label.pack(anchor=tk.CENTER, expand=True)
 
         rospy.init_node('gui_interface', disable_signals=True)
-        self.robot_say_sub = rospy.Subscriber('robot_say', String, self.message_cb)
-        self.robot_ask_sub = rospy.Subscriber('robot_ask', String, self.ask_cb)
-        self.human_response_pub = rospy.Publisher('human_response', String, queue_size=10)
+        self.robot_say_sub = rospy.Subscriber(self.DATA['ROBOT_SAY_TOPIC'], String, self.message_cb)
+        self.robot_ask_sub = rospy.Subscriber(self.DATA['ROBOT_ASK_TOPIC'], String, self.ask_cb)
+        self.human_response_pub = rospy.Publisher(self.DATA['HUMAN_RESPONSE_TOPIC'], String, queue_size=10)
 
         self.options = []  # hardcode
         self.button_list = []

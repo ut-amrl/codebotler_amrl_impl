@@ -1,0 +1,168 @@
+#!/usr/bin/env python3
+from utilities import *
+add_pythonpath_load_amrl_msgs_cd_rel(".", ".")
+
+from zero_shot_object_detector import GroundingDINO
+import rospy
+from typing import List
+from utilities import process_command_string
+import yaml
+from amrl_msgs.msg import NavStatusMsg
+from amrl_msgs.msg import Localization2DMsg
+from std_msgs.msg import String
+from sensor_msgs.msg import CompressedImage
+import cv2
+import numpy as np
+import time
+import torch
+import os
+import re
+from PIL import Image
+
+
+class RobotActions:
+    def __init__(self):
+        with open('../data.yaml', 'r') as f:
+            self.DATA = yaml.safe_load(f)
+
+        self.last_say_bool = None
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        config_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../third_party/GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py")
+        weights_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../third_party/GroundingDINO", "weights", "groundingdino_swint_ogc.pth")
+        self.object_detector_model = GroundingDINO(box_threshold=self.DATA['box_threshold'], text_threshold=self.DATA['text_threshold'], device=self.device, config_path=config_path, weights_path=weights_path)
+        self.latest_image_data = None
+        self.current_code_string = None
+        self.nav_status = None
+        self.new_loc_counter = 0
+        self.cur_coords = (None, None, None)  # (x, y, theta)
+
+        # Publishers
+        self.nav_goal_pub = rospy.Publisher(self.DATA['NAV_GOAL_TOPIC'], Localization2DMsg, queue_size=1)
+        self.robot_say_pub = rospy.Publisher(self.DATA['ROBOT_SAY_TOPIC'], String, queue_size=1)
+        self.robot_ask_pub = rospy.Publisher(self.DATA['ROBOT_ASK_TOPIC'], String, queue_size=1)
+
+        # Subscribers
+        rospy.Subscriber(self.DATA['PYTHON_COMMANDS_TOPIC'], String, self.python_cmds_callback, queue_size=1)
+        rospy.Subscriber(self.DATA['LOCALIZATION_TOPIC'], Localization2DMsg, self.localization_callback, queue_size=1)
+        rospy.Subscriber(self.DATA['NAV_STATUS_TOPIC'], NavStatusMsg, self.nav_status_callback, queue_size=1)
+        rospy.Subscriber(self.DATA['CAM_IMG_TOPIC'], CompressedImage, self.image_callback, queue_size=1, buff_size=2**32)
+
+    def python_cmds_callback(self, msg):
+        self.current_code_string, self.last_say_bool = process_command_string(msg.data)
+        self.execute()
+
+    def nav_status_callback(self, msg):
+        self.nav_status = msg.status
+
+    def localization_callback(self, msg):
+        self.cur_coords = (msg.pose.x, msg.pose.y, msg.pose.theta)
+
+    def image_callback(self, msg):
+        self.latest_image_data = msg.data
+
+    def go_to(self, location) -> None:
+        goal_msg = Localization2DMsg()
+        if location not in self.DATA['LOCATIONS'][self.DATA['MAP']].keys():
+            print(f"Location {location} not found")
+            return
+
+        goal_msg.pose.x = self.DATA['LOCATIONS'][self.DATA['MAP']][location][0]
+        goal_msg.pose.y = self.DATA['LOCATIONS'][self.DATA['MAP']][location][1]
+        goal_msg.pose.theta = self.DATA['LOCATIONS'][self.DATA['MAP']][location][2]
+        goal_msg.frame_id = "map"
+        self.nav_goal_pub.publish(goal_msg)
+        time.sleep(2)
+        while self.nav_status == 0:  # to ensure that the robot has started moving
+            time.sleep(0.1)
+        while self.nav_status in [2, 3]:  # to ensure that the robot has reached the goal
+            time.sleep(0.1)
+        time.sleep(2)  # to ensure that the robot has stopped moving
+
+    def _check_and_update_locations(self, new_loc):
+        min_dist = np.inf
+        closest_loc = None
+        for loc, coords in self.DATA['LOCATIONS'][self.DATA['MAP']].items():
+            dist = np.sqrt((coords[0] - new_loc[0])**2 + (coords[1] - new_loc[1])**2)
+            if dist < min_dist:
+                min_dist = dist
+                closest_loc = loc
+        if min_dist <= self.DATA['DIST_THRESHOLD']:
+            return closest_loc
+        else:
+            self.DATA['LOCATIONS'][self.DATA['MAP']][f"NEW_LOC_{self.new_loc_counter}"] = list(new_loc)  # Add new location to the dictionary
+            self.new_loc_counter += 1
+            return f"NEW_LOC_{self.new_loc_counter-1}"
+
+    def get_current_location(self) -> str:
+        return self._check_and_update_locations(self.cur_coords)
+
+    def _get_save_num(self, image_dir):
+        files = os.listdir(image_dir)
+        regex = re.compile(r'img(\d+)\.png')
+        max_num = -1
+        for filename in files:
+            match = regex.match(filename)
+            if match:
+                num = int(match.group(1))
+                if num > max_num:
+                    max_num = num
+        return max_num
+
+    def is_in_room(self, object) -> bool:
+        img1 = np.frombuffer(self.latest_image_data, np.uint8)
+        img2 = cv2.imdecode(img1, cv2.IMREAD_COLOR)
+        img3 = np.array(cv2.cvtColor(img2, cv2.COLOR_BGR2RGB))
+        boxes, logits, phrases, annotated_frame = self.object_detector_model.predict_from_image(img3, object)
+
+        image_dir = os.path.join("..", "images")
+        if not os.path.exists(image_dir):
+            os.makedirs(image_dir)
+
+        ann_image = Image.fromarray(np.array(annotated_frame).astype(np.uint8))
+        NUM = self._get_save_num(image_dir) + 1
+        ann_image.save(os.path.join(image_dir, f"annotated_frame_{NUM}.png"))
+        return len(boxes) > 0
+
+    def say(self, message) -> None:
+        msg = String()
+        msg.data = message
+        self.robot_say_pub.publish(msg)
+        print(f"Robot says: \"{message}\"")
+        time.sleep(1)
+
+    def get_all_rooms(self) -> List[str]:
+        # TODO: create a separate entry for ROOMS in data.yaml
+        return list(self.DATA['LOCATIONS'][self.DATA['MAP']].keys())
+
+    def ask(self, person, question, options=None) -> str:
+        response = "no answer"
+        if options != None:
+            options.append(question)
+            msg = String()
+            msg.data = str(options)
+            self.robot_ask_pub.publish(msg)
+            response = rospy.wait_for_message(self.DATA['HUMAN_RESPONSE_TOPIC'], String, timeout=self.DATA['HUMAN_RESPONSE_TIMEOUT']).data
+        if options == None:
+            print(f"Robot asks {person}: \"{question}\"")
+        else:
+            print(f"Robot asks {person}: \"{question}\" with options {options}")
+        print(f"Response: {response}")
+        return response
+
+    def execute(self):
+        exec(self.current_code_string)
+        if not self.last_say_bool:
+            self.say("Task complete!")
+
+
+if __name__ == "__main__":
+    def setup_ros_node():
+        rospy.init_node('ros_interface', anonymous=False)
+        ra = RobotActions()
+        time.sleep(1)
+        try:
+            rospy.spin()
+        except KeyboardInterrupt:
+            print("Shutting down ROS robot actions node")
+
+    setup_ros_node()
