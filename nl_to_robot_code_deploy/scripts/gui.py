@@ -37,9 +37,7 @@ class MyGUI:
         master.title("My GUI")
         master.attributes('-fullscreen', True)  # set full screen mode
 
-        # # create a frame to hold the buttons
-        self.button_frame = tk.Frame(master)
-        self.button_frame.pack(side=tk.BOTTOM, fill=tk.X)
+        self.button_frame = None
 
         self.label = tk.Label(master, text="Jackal :)", font=("Helvetica", 120))
         self.label.pack(anchor=tk.CENTER, expand=True)
@@ -80,6 +78,7 @@ class MyGUI:
         print("answered {}".format(option))
         for b in self.button_list:
             b.destroy()
+        self.button_frame.destroy()
         self.human_response_pub.publish(option)
         self.label.config(text="Jackal :)", font=("Helvetica", 120))
         self.label.pack(anchor=tk.CENTER, expand=True)
@@ -89,6 +88,9 @@ class MyGUI:
         question = msg[-1]
         options = msg[:-1]
         self.update_label(question)
+
+        self.button_frame = tk.Frame(self.master)  # Create the frame here
+        self.button_frame.pack(side=tk.BOTTOM, fill=tk.X)
 
         # create a button with text "Click me!"
         self.button_list.clear()

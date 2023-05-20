@@ -5,6 +5,7 @@
     <node name="interface_server"
         pkg="nl_to_robot_code_deploy"
         type="interface_server.py"
+        cwd="node"
         args="--ip 10.0.0.123 --port 8190"
         respawn="true"
         respawn_delay="2"
@@ -13,6 +14,7 @@
     <node name="gui"
         pkg="nl_to_robot_code_deploy"
         type="gui.py"
+        cwd="node"
         respawn="true"
         respawn_delay="2"
         output="screen"/>
@@ -20,6 +22,7 @@
     <node name="interface"
         pkg="nl_to_robot_code_deploy"
         type="interface.py"
+        cwd="node"
         respawn="true"
         respawn_delay="2"
         output="screen"/>

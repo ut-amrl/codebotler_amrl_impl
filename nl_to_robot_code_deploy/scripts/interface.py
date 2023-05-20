@@ -209,7 +209,7 @@ def get_processed_image():
 
 def initialize_DINO():
     current_script_dir = os.path.dirname(os.path.realpath(__file__))
-    base_dir = os.path.join(current_script_dir, "../../third_party/Grounded-Segment-Anything")
+    base_dir = os.path.join(current_script_dir, "../../third_party/Grounded-Segment-Anything/")
     config_file = base_dir + "GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py" # change the path of the model config file
     grounded_checkpoint = base_dir + "groundingdino_swint_ogc.pth" # change the path of the model
     device = "cuda"
