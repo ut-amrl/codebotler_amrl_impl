@@ -1,9 +1,9 @@
 ## Pre-requisites
 You should have the following built and on your `ROS_PACKAGE_PATH`:
-1. [amrl_msgs](git@github.com:ut-amrl/amrl_msgs.git)
-1. zed_wrapper
-1. ouster_ros
-1. pointcloud_to_laserscan
+1. [amrl_msgs](https://github.com/ut-amrl/amrl_msgs)
+2. zed_wrapper
+3. ouster_ros
+4. pointcloud_to_laserscan
 
 ## Setup
 1. Clone this repository
