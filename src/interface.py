@@ -127,7 +127,8 @@ class RobotActions:
         msg.data = message
         self.robot_say_pub.publish(msg)
         print(f"Robot says: \"{message}\"")
-        time.sleep(1)
+        word_len = len(message.split(" "))
+        time.sleep(self.DATA['SLEEP_AFTER_SAY']*word_len + 1)
 
     def get_all_rooms(self) -> List[str]:
         # TODO: create a separate entry for ROOMS in data.yaml
