@@ -49,6 +49,6 @@ find . -maxdepth 1 \( -name "*.py" -o -name "*.sh" \) -exec chmod +x {} \;
 cd src/
 find . -maxdepth 1 \( -name "*.py" -o -name "*.sh" \) -exec chmod +x {} \;
 cd ../
-cd third_party/robot_commands
+cd third_party/robot_commands/code_generator
 find . -maxdepth 1 \( -name "*.py" -o -name "*.sh" \) -exec chmod +x {} \;
 cd ../..
