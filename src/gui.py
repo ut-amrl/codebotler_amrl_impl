@@ -55,7 +55,7 @@ class MyGUI:
 
     def update_label(self, text):
         # Create a gTTS object and specify the language
-        self.label.config(text=f"Robot says: \n \"{text}\"", font=("Helvetica", 80),
+        self.label.config(text=f"{text}", font=("Helvetica", 80),
                           wraplength=int(self.master.winfo_screenwidth() * 0.8), justify="center")
         tts = gTTS(text=text, lang='en')
         current_path = os.path.abspath(__file__)
@@ -74,7 +74,7 @@ class MyGUI:
         print("message:", msg.data)
         self.update_label(msg.data)
         word_len = len(msg.data.split(" "))
-        time.sleep(self.DATA['SLEEP_AFTER_SAY']*word_len)
+        # time.sleep(self.DATA['SLEEP_AFTER_SAY']*word_len)
         self.label.config(text="Jackal :)", font=("Helvetica", 120))
         self.label.pack(anchor=tk.CENTER, expand=True)
 

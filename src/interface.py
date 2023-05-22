@@ -71,6 +71,12 @@ class RobotActions:
             print(f"Location {location} not found")
             return
 
+        if type(self.cur_coords[0]) != type(None):
+            curr_loc = np.array(self.cur_coords)[:2]
+            goal_loc = np.array([self.DATA['LOCATIONS'][self.DATA['MAP']][location][0], self.DATA['LOCATIONS'][self.DATA['MAP']][location][1]])
+            if np.linalg.norm(curr_loc-goal_loc) < 1.0:
+                return
+            
         goal_msg.pose.x = self.DATA['LOCATIONS'][self.DATA['MAP']][location][0]
         goal_msg.pose.y = self.DATA['LOCATIONS'][self.DATA['MAP']][location][1]
         goal_msg.pose.theta = self.DATA['LOCATIONS'][self.DATA['MAP']][location][2]
@@ -121,7 +127,7 @@ class RobotActions:
         self.robot_say_pub.publish(msg)
         print(f"Robot says: \"{message}\"")
         word_len = len(message.split(" "))
-        time.sleep(self.DATA['SLEEP_AFTER_SAY']*word_len*2)
+        # time.sleep(self.DATA['SLEEP_AFTER_SAY']*word_len*2)
 
     def get_all_rooms(self) -> List[str]:
         # TODO: create a separate entry for ROOMS in data.yaml
@@ -134,7 +140,7 @@ class RobotActions:
             msg = String()
             msg.data = str(options)
             self.robot_ask_pub.publish(msg)
-            response = rospy.wait_for_message(self.DATA['HUMAN_RESPONSE_TOPIC'], String, timeout=self.DATA['HUMAN_RESPONSE_TIMEOUT']).data
+            response = rospy.wait_for_message(self.DATA['HUMAN_RESPONSE_TOPIC'], String).data
         if options == None:
             print(f"Robot asks {person}: \"{question}\"")
         else:
