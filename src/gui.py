@@ -72,9 +72,7 @@ class MyGUI:
 
     def message_cb(self, msg):
         print("message:", msg.data)
-        self.update_label(msg.data)
-        word_len = len(msg.data.split(" "))
-        # time.sleep(self.DATA['SLEEP_AFTER_SAY']*word_len)
+        self.update_label(msg.data)        
         self.label.config(text="Jackal :)", font=("Helvetica", 120))
         self.label.pack(anchor=tk.CENTER, expand=True)
 

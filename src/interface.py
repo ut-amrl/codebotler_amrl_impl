@@ -74,19 +74,19 @@ class RobotActions:
         if type(self.cur_coords[0]) != type(None):
             curr_loc = np.array(self.cur_coords)[:2]
             goal_loc = np.array([self.DATA['LOCATIONS'][self.DATA['MAP']][location][0], self.DATA['LOCATIONS'][self.DATA['MAP']][location][1]])
-            if np.linalg.norm(curr_loc-goal_loc) < 1.0:
+            if np.linalg.norm(curr_loc-goal_loc) < self.DATA['DIST_THRESHOLD']:
                 return
             
         goal_msg.pose.x = self.DATA['LOCATIONS'][self.DATA['MAP']][location][0]
         goal_msg.pose.y = self.DATA['LOCATIONS'][self.DATA['MAP']][location][1]
         goal_msg.pose.theta = self.DATA['LOCATIONS'][self.DATA['MAP']][location][2]
         self.nav_goal_pub.publish(goal_msg)
-        time.sleep(2)
+        time.sleep(0.2)
         while self.nav_status == 0:  # to ensure that the robot has started moving
             time.sleep(0.1)
         while self.nav_status in [2, 3]:  # to ensure that the robot has reached the goal
             time.sleep(0.1)
-        time.sleep(2)  # to ensure that the robot has stopped moving
+        time.sleep(1)  # to ensure that the robot has stopped moving
 
     def _check_and_update_locations(self, new_loc):
         min_dist = np.inf
@@ -127,7 +127,7 @@ class RobotActions:
         self.robot_say_pub.publish(msg)
         print(f"Robot says: \"{message}\"")
         word_len = len(message.split(" "))
-        # time.sleep(self.DATA['SLEEP_AFTER_SAY']*word_len*2)
+        time.sleep(self.DATA['SLEEP_AFTER_SAY']*word_len*2)
 
     def get_all_rooms(self) -> List[str]:
         # TODO: create a separate entry for ROOMS in data.yaml
@@ -146,6 +146,8 @@ class RobotActions:
         else:
             print(f"Robot asks {person}: \"{question}\" with options {options}")
         print(f"Response: {response}")
+        word_len = len(question.split(" "))
+        time.sleep(self.DATA['SLEEP_AFTER_ASK']*word_len*2)
         return response
 
     def execute(self):

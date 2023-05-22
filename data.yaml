@@ -9,9 +9,9 @@ NAV_STATUS_TOPIC: "/navigation_goal_status"
 NAV_GOAL_TOPIC: "/move_base_simple/goal_amrl"
 CAM_IMG_TOPIC: /zed2i/zed_node/stereo/image_rect_color/compressed
 LOCALIZATION_TOPIC: "/localization"
-DIST_THRESHOLD: 1.5
-SLEEP_AFTER_SAY: 0.6
-SLEEP_AFTER_ASK: 1.0
+DIST_THRESHOLD: 1.25
+SLEEP_AFTER_SAY: 0.24
+SLEEP_AFTER_ASK: 0.1
 
 # ------------------------------------------------------------
 ###### Format: first letter capital, no 's or _ or - etc
@@ -25,13 +25,13 @@ LOCATIONS:
     Fine art studio couch area: [68.05, 47.92, -2.59]
     Fine art studio lockers area: [67.82, 44.79, -1.77]
   ahg2:
-    Jaci office: [61.76, 54.05, 3.11]
+    Sadanand office: [61.50, 30.57, 3.07]
     Sri office: [61.85, 37.94, -3.12]
-    Lounge: [46.95, 66.14, 1.61]
     Zichao office: [61.50, 52.51, 3.06]
     Luisa office: [61.50, 52.51, 3.06]
-    Sadanand office: [61.50, 30.57, 3.07]
+    Jaci office: [61.76, 54.05, 3.11]
     Zarko office: [33.48, 64.39, -1.57]
+    Lounge: [46.95, 66.14, 1.61]
     Main entrance: [41.36, 65.20, 2.20]
     Conference room: [46.70, 64.73, -1.54]
     Elevator: [12.68, 65.36, -2.52]
