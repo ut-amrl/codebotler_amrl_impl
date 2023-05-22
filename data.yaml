@@ -11,7 +11,7 @@ CAM_IMG_TOPIC: /zed2i/zed_node/stereo/image_rect_color/compressed
 LOCALIZATION_TOPIC: "/localization"
 DIST_THRESHOLD: 1.5
 HUMAN_RESPONSE_TIMEOUT: 30
-SLEEP_AFTER_SAY: 0.5
+SLEEP_AFTER_SAY: 0.6
 
 # ------------------------------------------------------------
 ###### Format: first letter capital, no 's or _ or - etc

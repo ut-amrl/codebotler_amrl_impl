@@ -13,4 +13,4 @@ You should have the following built and on your `ROS_PACKAGE_PATH`:
 
 ## Usage
 1. Run `start_all.sh` (which launches `start_all.launch`) to launch all the nodes
-1. Open `third_party/robot_commands/code_generator/interface.html` in your browser (change the ip to `10.0.0.123` if you're using the robot)
+1. Open `third_party/robot_commands/code_generator/interface.html` in your browser (change the `SERVER_URL` to have ip `10.0.0.123` and port `8190` if you're using the robot)

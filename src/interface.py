@@ -18,6 +18,7 @@ import torch
 import os
 import re
 from PIL import Image
+import shutil
 
 
 class RobotActions:
@@ -26,6 +27,7 @@ class RobotActions:
             self.DATA = yaml.safe_load(f)
 
         self.last_say_bool = None
+        self.available_dsl_fns = ["go_to", "get_current_location", "is_in_room", "say", "get_all_rooms", "ask"]
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         config_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../third_party/GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py")
         weights_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../third_party/GroundingDINO", "weights", "groundingdino_swint_ogc.pth")
@@ -33,6 +35,9 @@ class RobotActions:
         self.latest_image_data = None
         self.current_code_string = None
         self.nav_status = None
+        self.current_image_num = 0
+        if os.path.exists(os.path.join("..", "images")):
+            shutil.rmtree(os.path.join("..", "images"))
         self.new_loc_counter = 0
         self.cur_coords = (None, None, None)  # (x, y, theta)
 
@@ -42,13 +47,13 @@ class RobotActions:
         self.robot_ask_pub = rospy.Publisher(self.DATA['ROBOT_ASK_TOPIC'], String, queue_size=1)
 
         # Subscribers
-        rospy.Subscriber('/chat_commands', String, self.python_cmds_callback, queue_size=1)
+        rospy.Subscriber('/chat_commands', String, self.python_cmds_callback, queue_size=10)
         rospy.Subscriber(self.DATA['LOCALIZATION_TOPIC'], Localization2DMsg, self.localization_callback, queue_size=1)
         rospy.Subscriber(self.DATA['NAV_STATUS_TOPIC'], NavStatusMsg, self.nav_status_callback, queue_size=1)
         rospy.Subscriber(self.DATA['CAM_IMG_TOPIC'], CompressedImage, self.image_callback, queue_size=1, buff_size=2**32)
 
     def python_cmds_callback(self, msg):
-        self.current_code_string, self.last_say_bool = process_command_string(msg.data)
+        self.current_code_string, self.last_say_bool = process_command_string(msg.data, self.available_dsl_fns)
         self.execute()
 
     def nav_status_callback(self, msg):
@@ -95,18 +100,6 @@ class RobotActions:
     def get_current_location(self) -> str:
         return self._check_and_update_locations(self.cur_coords)
 
-    def _get_save_num(self, image_dir):
-        files = os.listdir(image_dir)
-        regex = re.compile(r'img(\d+)\.png')
-        max_num = -1
-        for filename in files:
-            match = regex.match(filename)
-            if match:
-                num = int(match.group(1))
-                if num > max_num:
-                    max_num = num
-        return max_num
-
     def is_in_room(self, object) -> bool:
         img1 = np.frombuffer(self.latest_image_data, np.uint8)
         img2 = cv2.imdecode(img1, cv2.IMREAD_COLOR)
@@ -118,8 +111,8 @@ class RobotActions:
             os.makedirs(image_dir)
 
         ann_image = Image.fromarray(np.array(annotated_frame).astype(np.uint8))
-        NUM = self._get_save_num(image_dir) + 1
-        ann_image.save(os.path.join(image_dir, f"annotated_frame_{NUM}.png"))
+        ann_image.save(os.path.join(image_dir, f"annotated_frame_{self.current_image_num}.png"))
+        self.current_image_num += 1
         return len(boxes) > 0
 
     def say(self, message) -> None:
@@ -128,7 +121,7 @@ class RobotActions:
         self.robot_say_pub.publish(msg)
         print(f"Robot says: \"{message}\"")
         word_len = len(message.split(" "))
-        time.sleep(self.DATA['SLEEP_AFTER_SAY']*word_len + 1)
+        time.sleep(self.DATA['SLEEP_AFTER_SAY']*word_len*2)
 
     def get_all_rooms(self) -> List[str]:
         # TODO: create a separate entry for ROOMS in data.yaml

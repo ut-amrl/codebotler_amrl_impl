@@ -23,7 +23,7 @@ def load_amrl_msgs():
     roslib.load_manifest('amrl_msgs')
 
 
-def process_command_string(command_string):
+def process_command_string(command_string, DSL_FNS):
     """
     1. Check if last function call is say, return a boolean
     2. For go_to, remove "'s" from the end of words, capitalize first word's first letter and return new string
@@ -34,7 +34,9 @@ def process_command_string(command_string):
         # The regular expression pattern for a function name
         pattern = r'\b([a-zA-Z_][a-zA-Z_0-9]*)\s*\('
         # Find all matches in the command_string
-        matches = re.findall(pattern, input_str)
+        all_matches = re.findall(pattern, input_str)
+        # Filter matches based on DSL
+        matches = [match for match in all_matches if match in DSL_FNS]
         return matches[-1] == "say"
 
     def fn2(input_str):
@@ -63,9 +65,8 @@ def process_command_string(command_string):
         return re.sub(r'(\b[A-Za-z_][A-Za-z0-9_]*\b)\((.*?)\)', replacer, input_str)
 
     def fn3(input_str):
-        # return re.sub(r'(\b[A-Za-z_][A-Za-z0-9_]*\b\()', r'self.\1', input_str)
-        return re.sub(r'\b((?:[A-Za-z_][A-Za-z0-9_]*\.)?)([A-Za-z_][A-Za-z0-9_]*\b)\(', 
-                  lambda m: m.group() if m.group(1) == ("time." or "numpy." or "np.") else "self." + m.group(), 
-                  input_str)
+        return re.sub(r'\b([A-Za-z_][A-Za-z0-9_]*\b)\(', 
+                    lambda m: "self." + m.group() if m.group(1) in DSL_FNS else m.group(), 
+                    input_str)
 
     return fn3(fn2(command_string)), fn1(command_string)
