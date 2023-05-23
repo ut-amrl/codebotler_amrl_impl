@@ -26,7 +26,7 @@ def load_amrl_msgs():
 def process_command_string(command_string, DSL_FNS):
     """
     1. Check if last function call is say, return a boolean
-    2. For go_to, remove "'s" from the end of words, capitalize first word's first letter and return new string
+    2. For go_to, remove "'s" from the end of words, etc and return new string
     3. Prepend self. to each function call and return new string
     """
 
@@ -46,8 +46,8 @@ def process_command_string(command_string, DSL_FNS):
             inp = ''.join(ch for ch in inp if ch.isalnum() or ch.isspace())
             # Split the string into words
             words = inp.split()
-            # Capitalize the first letter of the first word, lower case for others
-            words = [word.capitalize() if i == 0 else word.lower() for i, word in enumerate(words)]
+            # Lower case for all words
+            words = [word.lower() for i, word in enumerate(words)]
             # Join the words back into a string
             output_str = ' '.join(words)
             return output_str
