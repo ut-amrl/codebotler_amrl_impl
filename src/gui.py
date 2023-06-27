@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-from utilities import *
-cd_rel(".")
 
+import os
 import rospy
 from std_msgs.msg import String
 import tkinter as tk
@@ -9,7 +8,6 @@ from gtts import gTTS
 import os
 import speech_recognition as sr
 import yaml
-import time
 
 
 def listen_for_yes_or_no():
@@ -72,7 +70,7 @@ class MyGUI:
 
     def message_cb(self, msg):
         print("message:", msg.data)
-        self.update_label(msg.data)        
+        self.update_label(msg.data)
         self.label.config(text="Jackal :)", font=("Helvetica", 120))
         self.label.pack(anchor=tk.CENTER, expand=True)
 
