@@ -5,7 +5,6 @@ import os
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), "../third_party/GroundingDINO"))
 import warnings
 warnings.filterwarnings("ignore")
-import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # or any {'0', '1', '2'}
 from groundingdino.util.inference import load_model, load_image, predict, annotate
 from groundingdino.datasets import transforms as T

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
 import os
+import sys
 import rospy
 from std_msgs.msg import String
 import tkinter as tk
 from gtts import gTTS
-import os
 import speech_recognition as sr
 import yaml
 
