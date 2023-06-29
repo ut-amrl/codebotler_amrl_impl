@@ -73,6 +73,13 @@ class RobotActions:
         self.latest_image_data = msg.data
 
     def go_to(self, goal):
+        def stop_robot():
+            goal_msg = Localization2DMsg()
+            goal_msg.pose.x = self.cur_coords[0]
+            goal_msg.pose.y = self.cur_coords[1]
+            goal_msg.pose.theta = self.cur_coords[2]
+            self.nav_goal_pub.publish(goal_msg)
+        
         location = goal.location
 
         # process location
@@ -102,12 +109,14 @@ class RobotActions:
             if self.go_to_server.is_preempt_requested():
                 self.go_to_server.set_preempted()
                 success = False
+                stop_robot()
                 break
         while self.nav_status in [2, 3] and success:  # to ensure that the robot has reached the goal
             time.sleep(0.1)
             if self.go_to_server.is_preempt_requested():
                 self.go_to_server.set_preempted()
                 success = False
+                stop_robot()
                 break
         time.sleep(1)  # to ensure that the robot has stopped moving
         if success:
@@ -124,7 +133,7 @@ class RobotActions:
         if min_dist <= self.DATA['DIST_THRESHOLD']:
             return closest_loc
         else:
-            self.DATA['LOCATIONS'][self.DATA['MAP']][f"NEW_LOC_{self.new_loc_counter}"] = list(new_loc)  # Add new location to the dictionary
+            self.DATA['LOCATIONS'][self.DATA['MAP']][f"new_loc_{self.new_loc_counter}"] = list(new_loc)  # Add new location to the dictionary
             self.new_loc_counter += 1
             return f"NEW_LOC_{self.new_loc_counter-1}"
 
@@ -193,16 +202,15 @@ class RobotActions:
         r = AskResult()
         success = True
         response = "no answer"
-        if options != None:
+        if options == None:
+            print(f"Robot asks {person}: \"{question}\"")
+        else:
+            print(f"Robot asks {person}: \"{question}\" with options {options}")
             options.append(question)
             msg = String()
             msg.data = str(options)
             self.robot_ask_pub.publish(msg)
             response = rospy.wait_for_message(self.DATA['HUMAN_RESPONSE_TOPIC'], String).data
-        if options == None:
-            print(f"Robot asks {person}: \"{question}\"")
-        else:
-            print(f"Robot asks {person}: \"{question}\" with options {options}")
         print(f"Response: {response}")
         word_len = len(question.split(" "))
         time.sleep(self.DATA['SLEEP_AFTER_ASK'] * word_len * 2)
