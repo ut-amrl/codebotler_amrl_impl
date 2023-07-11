@@ -40,7 +40,7 @@ class MyGUI:
 
         self.button_frame = None
 
-        self.label = tk.Label(master, text="Jackal :)", font=("Helvetica", 120))
+        self.label = tk.Label(master, text="Jackal :)", font=("Helvetica", 180))
         self.label.pack(anchor=tk.CENTER, expand=True)
 
         rospy.init_node('gui_interface', disable_signals=True)
@@ -53,7 +53,7 @@ class MyGUI:
 
     def update_label(self, text):
         # Create a gTTS object and specify the language
-        self.label.config(text=f"{text}", font=("Helvetica", 80),
+        self.label.config(text=f"{text}", font=("Helvetica", 120),
                           wraplength=int(self.master.winfo_screenwidth() * 0.8), justify="center")
         tts = gTTS(text=text, lang='en')
         current_path = os.path.abspath(__file__)
@@ -71,7 +71,7 @@ class MyGUI:
     def message_cb(self, msg):
         print("message:", msg.data)
         self.update_label(msg.data)
-        self.label.config(text="Jackal :)", font=("Helvetica", 120))
+        self.label.config(text="Jackal :)", font=("Helvetica", 180))
         self.label.pack(anchor=tk.CENTER, expand=True)
 
     def on_button_click(self, option):
@@ -81,7 +81,7 @@ class MyGUI:
             b.destroy()
         self.button_frame.destroy()
         self.human_response_pub.publish(option)
-        self.label.config(text="Jackal :)", font=("Helvetica", 120))
+        self.label.config(text="Jackal :)", font=("Helvetica", 180))
         self.label.pack(anchor=tk.CENTER, expand=True)
 
     def ask_cb(self, msg):
@@ -96,7 +96,7 @@ class MyGUI:
         # create a button with text "Click me!"
         self.button_list.clear()
         for option in options:
-            button = tk.Button(self.button_frame, text=option, font=("Helvetica", 40), command=lambda key=option: self.on_button_click(key))
+            button = tk.Button(self.button_frame, text=option, font=("Helvetica", 60), command=lambda key=option: self.on_button_click(key))
             button.config(width=10, height=10, pady=10)
             button.pack(side="left", fill="x", expand=True)
 
