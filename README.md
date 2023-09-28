@@ -1,9 +1,12 @@
+# Implementation of the CodeBotler Action Server on UT AMRL Jackal
 ## Pre-requisites
 You should have the following built and on your `ROS_PACKAGE_PATH`:
 1. [amrl_msgs](https://github.com/ut-amrl/amrl_msgs)
-2. zed_wrapper
-3. ouster_ros
-4. pointcloud_to_laserscan
+2. [amrl_maps](https://github.com/ut-amrl/amrl_maps)
+3. zed_wrapper
+4. ouster_ros
+5. pointcloud_to_laserscan
+6. [ros actions](action/Ask.action): use catkin_make to create
 
 ## Setup
 1. Clone this repository
