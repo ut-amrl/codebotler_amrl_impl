@@ -19,7 +19,8 @@ from PIL import Image
 import shutil
 import signal
 import actionlib
-from robot_actions_pkg.msg import GoToAction, GoToFeedback, GoToResult, GetCurrentLocationAction, GetCurrentLocationFeedback, GetCurrentLocationResult, IsInRoomAction, IsInRoomFeedback, IsInRoomResult, SayAction, SayFeedback, SayResult, GetAllRoomsAction, GetAllRoomsFeedback, GetAllRoomsResult, AskAction, AskFeedback, AskResult
+from robot_actions_pkg.msg import GoToAction, GetCurrentLocationAction, IsInRoomAction, SayAction, GetAllRoomsAction, AskAction, PickAction, PlaceAction
+from robot_actions_pkg.msg import GoToResult, GetCurrentLocationResult, IsInRoomResult, SayResult, GetAllRoomsResult, AskResult, PickResult, PlaceResult
 
 
 class RobotActions:
@@ -46,12 +47,16 @@ class RobotActions:
         self.say_server = actionlib.SimpleActionServer("/say_server", SayAction, self.say, auto_start=False)
         self.get_all_rooms_server = actionlib.SimpleActionServer("/get_all_rooms_server", GetAllRoomsAction, self.get_all_rooms, auto_start=False)
         self.ask_server = actionlib.SimpleActionServer("/ask_server", AskAction, self.ask, auto_start=False)
+        self.pick_server = actionlib.SimpleActionServer("/pick_server", PickAction, self.get_all_rooms, auto_start=False)
+        self.place_server = actionlib.SimpleActionServer("/place_server", PlaceAction, self.get_all_rooms, auto_start=False)
         self.go_to_server.start()
         self.get_current_location_server.start()
         self.is_in_room_server.start()
         self.say_server.start()
         self.get_all_rooms_server.start()
         self.ask_server.start()
+        self.pick_server.start()
+        self.place_server.start()
 
         # Publishers
         self.nav_goal_pub = rospy.Publisher(self.DATA['NAV_GOAL_TOPIC'], Localization2DMsg, queue_size=1)
@@ -62,6 +67,7 @@ class RobotActions:
         rospy.Subscriber(self.DATA['LOCALIZATION_TOPIC'], Localization2DMsg, self.localization_callback, queue_size=1)
         rospy.Subscriber(self.DATA['NAV_STATUS_TOPIC'], NavStatusMsg, self.nav_status_callback, queue_size=1)
         rospy.Subscriber(self.DATA['CAM_IMG_TOPIC'], CompressedImage, self.image_callback, queue_size=1, buff_size=2**32)
+        print("======= Started all robot action servers =======")
 
     def nav_status_callback(self, msg):
         self.nav_status = msg.status
