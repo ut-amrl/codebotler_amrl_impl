@@ -1,0 +1,4 @@
+defusedxml
+opencv-python
+gtts
+SpeechRecognition

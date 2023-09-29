@@ -1,6 +1,7 @@
 #!/bin/bash 
 
 git submodule update --init --recursive
+pip install -r requirements.txt
 
 ut_jackal_path=$(realpath third_party/ut_jackal)
 echo $ut_jackal_path
