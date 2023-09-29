@@ -103,6 +103,7 @@ class RobotActions:
             curr_loc = np.array(self.cur_coords)[:2]
             goal_loc = np.array([self.DATA['LOCATIONS'][self.DATA['MAP']][location][0], self.DATA['LOCATIONS'][self.DATA['MAP']][location][1]])
             if np.linalg.norm(curr_loc - goal_loc) < self.DATA['DIST_THRESHOLD']:
+                self.go_to_server.set_succeeded()
                 return
 
         goal_msg.pose.x = self.DATA['LOCATIONS'][self.DATA['MAP']][location][0]
