@@ -4,7 +4,7 @@ HUMAN_RESPONSE_TOPIC: "/human_response"
 DINO:
   box_threshold: 0.6
   text_threshold: 0.4
-MAP: "ahg2"
+MAP: "ahg1"
 NAV_STATUS_TOPIC: "/navigation_goal_status"
 NAV_GOAL_TOPIC: "/move_base_simple/goal_amrl"
 CAM_IMG_TOPIC: /zed2i/zed_node/stereo/image_rect_color/compressed
@@ -18,12 +18,15 @@ SLEEP_AFTER_ASK: 0.1
 # ------------------------------------------------------------
 LOCATIONS:
   ahg1:
+    wood shop: [34.90, 77.86, 0.98]
+    research lab: [19.46, 70.14, 1.79]
+    front door: [44.72, 74.8, -1.26]
     kitchen: [41.17, 76.77, -2.35]
     elevator: [18.27, 78.91, -2.41]
-    fine art studio rocking chair area: [69.08, 63.96, -3.09]
-    fine art studio high table area: [70.97, 58.60, -2.83]
-    fine art studio couch area: [68.05, 47.92, -2.59]
-    fine art studio lockers area: [67.82, 44.79, -1.77]
+    # fine art studio rocking chair area: [69.08, 63.96, -3.09]
+    # fine art studio high table area: [70.97, 58.60, -2.83]
+    # fine art studio couch area: [68.05, 47.92, -2.59]
+    # fine art studio lockers area: [67.82, 44.79, -1.77]
   ahg2:
     sadanand office: [61.50, 30.57, 3.07]
     sri office: [61.85, 37.94, -3.12]

@@ -79,6 +79,17 @@ class RobotActions:
         self.latest_image_data = msg.data
 
     def go_to(self, goal):
+        msg = String()
+        msg.data = "I am going to the " + str(goal.location)
+        self.robot_say_pub.publish(msg)
+        time.sleep(self.DATA['SLEEP_AFTER_SAY'] * 6 * 2)
+        success = True
+        if self.say_server.is_preempt_requested():
+            self.say_server.set_preempted()
+            success = False
+        if success:
+            self.say_server.set_succeeded()
+
         def stop_robot():
             goal_msg = Localization2DMsg()
             goal_msg.pose.x = self.cur_coords[0]
@@ -140,9 +151,9 @@ class RobotActions:
         if min_dist <= self.DATA['DIST_THRESHOLD']:
             return closest_loc
         else:
-            self.DATA['LOCATIONS'][self.DATA['MAP']][f"new_loc_{self.new_loc_counter}"] = list(new_loc)  # Add new location to the dictionary
-            self.new_loc_counter += 1
-            return f"NEW_LOC_{self.new_loc_counter-1}"
+            self.DATA['LOCATIONS'][self.DATA['MAP']][f"starting location"] = list(new_loc)  # Add new location to the dictionary
+            # self.new_loc_counter += 1
+            return "starting location"
 
     def get_current_location(self, goal):
         r = GetCurrentLocationResult()
