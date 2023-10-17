@@ -19,10 +19,10 @@ SLEEP_AFTER_ASK: 0.1
 LOCATIONS:
   ahg1:
     wood shop: [34.90, 77.86, 0.98]
-    research lab: [19.46, 70.14, 1.79]
-    front door: [44.72, 74.8, -1.26]
-    kitchen: [41.17, 76.77, -2.35]
     elevator: [18.27, 78.91, -2.41]
+    research lab: [19.46, 70.14, 1.79]
+    kitchen: [41.17, 76.77, -2.35]
+    front door: [44.72, 74.8, -1.26]
     # fine art studio rocking chair area: [69.08, 63.96, -3.09]
     # fine art studio high table area: [70.97, 58.60, -2.83]
     # fine art studio couch area: [68.05, 47.92, -2.59]
