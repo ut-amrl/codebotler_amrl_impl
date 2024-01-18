@@ -4,7 +4,7 @@ HUMAN_RESPONSE_TOPIC: "/human_response"
 DINO:
   box_threshold: 0.6
   text_threshold: 0.4
-MAP: "ahg1"
+MAP: "gdc2"
 NAV_STATUS_TOPIC: "/navigation_goal_status"
 NAV_GOAL_TOPIC: "/move_base_simple/goal_amrl"
 CAM_IMG_TOPIC: /zed2i/zed_node/stereo/image_rect_color/compressed
@@ -21,7 +21,7 @@ LOCATIONS:
     wood shop: [34.90, 77.86, 0.98]
     elevator: [18.27, 78.91, -2.41]
     research lab: [19.46, 70.14, 1.79]
-    kitchen: [41.17, 76.77, -2.35]
+    demo area: [39.34, 76.16, 1.589]
     front door: [44.72, 74.8, -1.26]
     # fine art studio rocking chair area: [69.08, 63.96, -3.09]
     # fine art studio high table area: [70.97, 58.60, -2.83]
@@ -52,3 +52,11 @@ LOCATIONS:
     joydeep office: [14.89, 14.63, -1.576]
     front door: [-5.67, 15.36, -2.58]
     main conference room: [17.92, 13.13, -0.83]
+  gdc2:
+    elevator: [-11.4, 7.47, -2.45]
+    restroom: [-17.65, 11.22, 0]
+    dante classroom: [-17.61, 16.12, -0.61]
+    lucky lab: [-8.79, -15.5, -1.46]
+    front door: [-26.36, -8.27, 3.06]
+    outside: [-34.44, -7.06, -3.08]
+    stairs: [-20.32, -2.21, 2.69]
