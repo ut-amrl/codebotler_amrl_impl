@@ -25,4 +25,4 @@ if [[ $ROS_PACKAGE_PATH != *"$graph_nav_path"* ]]; then
     export ROS_PACKAGE_PATH=$graph_nav_path:$ROS_PACKAGE_PATH
 fi
 
-roslaunch nl_to_robot_code_deploy start_all.launch
+roslaunch codebotler_amrl_impl start_all.launch
