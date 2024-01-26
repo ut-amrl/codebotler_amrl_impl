@@ -1,6 +1,6 @@
 <launch>
     <!-- Jackal autonomy stack -->
-    <include file="$(find ut_jackal)/launch/autonomy.launch" />
+    <include file="$(find spot_autonomy)/launch/autonomy.launch" />
 
     <node name="gui"
         pkg="codebotler_amrl_impl"

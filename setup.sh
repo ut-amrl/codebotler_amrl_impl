@@ -3,9 +3,9 @@
 git submodule update --init --recursive
 pip install -r requirements.txt
 
-ut_jackal_path=$(realpath third_party/ut_jackal)
-echo $ut_jackal_path
-graph_nav_path=$(realpath third_party/ut_jackal/graph_navigation)
+spot_autonomy_path=$(realpath third_party/spot_autonomy)
+echo $spot_autonomy_path
+graph_nav_path=$(realpath third_party/spot_autonomy/graph_navigation)
 echo $graph_nav_path
 
 cd third_party/GroundingDINO
@@ -21,14 +21,14 @@ else
 fi
 cd ../
 
-if [[ $ROS_PACKAGE_PATH == *"ut_jackal"* ]]; then
-    echo "Removing ut_jackal from ROS_PACKAGE_PATH..."
-    export ROS_PACKAGE_PATH=$(echo $ROS_PACKAGE_PATH | tr ':' '\n' | grep -v "ut_jackal" | paste -sd: -)
+if [[ $ROS_PACKAGE_PATH == *"spot_autonomy"* ]]; then
+    echo "Removing spot_autonomy from ROS_PACKAGE_PATH..."
+    export ROS_PACKAGE_PATH=$(echo $ROS_PACKAGE_PATH | tr ':' '\n' | grep -v "spot_autonomy" | paste -sd: -)
 fi
 # Add the new path to ROS_PACKAGE_PATH
 if [[ $ROS_PACKAGE_PATH != *"$ut_jackal_path"* ]]; then
-    echo "Adding $ut_jackal_path to ROS_PACKAGE_PATH..."
-    export ROS_PACKAGE_PATH=$ut_jackal_path:$ROS_PACKAGE_PATH
+    echo "Adding $spot_autonomy_path to ROS_PACKAGE_PATH..."
+    export ROS_PACKAGE_PATH=$spot_autonomy_path:$ROS_PACKAGE_PATH
 fi
 
 if [[ $ROS_PACKAGE_PATH == *"graph_navigation"* ]]; then
@@ -41,7 +41,7 @@ if [[ $ROS_PACKAGE_PATH != *"$graph_nav_path"* ]]; then
     export ROS_PACKAGE_PATH=$graph_nav_path:$ROS_PACKAGE_PATH
 fi
 
-cd ../ut_jackal
+cd ../spot_autonomy
 make -j$(nproc)
 cd ../../
 

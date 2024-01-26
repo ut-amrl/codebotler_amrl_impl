@@ -7,7 +7,7 @@ DINO:
 MAP: "gdc2"
 NAV_STATUS_TOPIC: "/navigation_goal_status"
 NAV_GOAL_TOPIC: "/move_base_simple/goal_amrl"
-CAM_IMG_TOPIC: /zed2i/zed_node/stereo/image_rect_color/compressed
+CAM_IMG_TOPIC: "/camera/rgb/image_raw"
 LOCALIZATION_TOPIC: "/localization"
 DIST_THRESHOLD: 1.25
 SLEEP_AFTER_SAY: 0.24
