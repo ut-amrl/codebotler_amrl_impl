@@ -1,6 +1,6 @@
 [submodule "third_party/GroundingDINO"]
 	path = third_party/GroundingDINO
-	url = git@github.com:IDEA-Research/GroundingDINO.git
+    url = https://github.com/IDEA-Research/GroundingDINO.git
 [submodule "third_party/spot_autonomy"]
 	path = third_party/spot_autonomy
-	url = git@github.com-domlee:ut-amrl/spot_autonomy.git
+    url = https://github.com/ut-amrl/spot_autonomy.git

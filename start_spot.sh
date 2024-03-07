@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source ../docker/.dockerenv
+
 codebotler_amrl_impl_path=$(pwd)
 echo $codebotler_amrl_impl_path
 spot_autonomy_path=$(realpath third_party/spot_autonomy)
@@ -33,4 +35,4 @@ if [[ $ROS_PACKAGE_PATH != *"$graph_nav_path"* ]]; then
     export ROS_PACKAGE_PATH=$graph_nav_path:$ROS_PACKAGE_PATH
 fi
 
-roslaunch codebotler_amrl_impl start_all.launch
+roslaunch spot_autonomy start_all.launch

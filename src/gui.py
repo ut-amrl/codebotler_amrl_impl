@@ -40,7 +40,7 @@ class MyGUI:
 
         self.button_frame = None
 
-        self.label = tk.Label(master, text="Jackal :)", font=("Helvetica", 120))
+        self.label = tk.Label(master, text="I'm Spot :)", font=("Helvetica", 120))
         self.label.pack(anchor=tk.CENTER, expand=True)
 
         rospy.init_node('gui_interface', disable_signals=True)
@@ -66,12 +66,12 @@ class MyGUI:
         tts.save(file_path)
 
         # Play the audio file
-        os.system('mpg321 {}'.format(file_path))
+        os.system('mpg123 {}'.format(file_path))
 
     def message_cb(self, msg):
         print("message:", msg.data)
         self.update_label(msg.data)
-        self.label.config(text="Jackal :)", font=("Helvetica", 120))
+        self.label.config(text="I'm Spot :)", font=("Helvetica", 120))
         self.label.pack(anchor=tk.CENTER, expand=True)
 
     def on_button_click(self, option):
@@ -81,7 +81,7 @@ class MyGUI:
             b.destroy()
         self.button_frame.destroy()
         self.human_response_pub.publish(option)
-        self.label.config(text="Jackal :)", font=("Helvetica", 120))
+        self.label.config(text="I'm Spot :)", font=("Helvetica", 120))
         self.label.pack(anchor=tk.CENTER, expand=True)
 
     def ask_cb(self, msg):

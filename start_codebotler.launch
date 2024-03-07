@@ -1,7 +1,5 @@
 <launch>
     <!-- Jackal autonomy stack -->
-    <include file="$(find spot_autonomy)/launch/autonomy.launch" />
-
     <node name="gui"
         pkg="codebotler_amrl_impl"
         type="gui.py"
@@ -9,7 +7,7 @@
         respawn="true"
         respawn_delay="2"
         output="screen"/>
-    
+
     <node name="robot_low_level_actions"
         pkg="codebotler_amrl_impl"
         type="actions.py"
