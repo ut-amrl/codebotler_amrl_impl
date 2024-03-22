@@ -7,9 +7,9 @@ DINO:
 MAP: "ahg2"
 NAV_STATUS_TOPIC: "/navigation_goal_status"
 NAV_GOAL_TOPIC: "/move_base_simple/goal_amrl"
-CAM_IMG_TOPIC: "/camera/rgb/image_raw"
+CAM_IMG_TOPIC: "/camera/rgb/image_raw/compressed"
 LOCALIZATION_TOPIC: "/localization"
-DIST_THRESHOLD: 1.25
+DIST_THRESHOLD: 1.0
 SLEEP_AFTER_SAY: 0.24
 SLEEP_AFTER_ASK: 0.1
 
@@ -28,7 +28,12 @@ LOCATIONS:
     # fine art studio couch area: [68.05, 47.92, -2.59]
     # fine art studio lockers area: [67.82, 44.79, -1.77]
   ahg2:
-    sadanand office: [61.50, 30.57, 3.07]
+    # sadanand office: [61.50, 30.57, 3.07]
+    sadanand office: [13.4, 73.0, -1.20]
+    cabinet: [5.537, 64.52, 0.078]
+    alphatruck: [4.54, 74.17, 1.55]
+    docking: [10.73, 74.84, 1.16]
+    toolrack: [7.92, 67.24, -3.03]
     sri office: [61.85, 37.94, -3.12]
     zichao office: [61.50, 52.51, 3.06]
     luisa office: [61.50, 52.51, 3.06]
@@ -38,6 +43,8 @@ LOCATIONS:
     main entrance: [41.36, 65.20, 2.20]
     conference room: [46.70, 64.73, -1.54]
     elevator: [12.68, 65.36, -2.52]
+
+
   ahg_amrl:
     tv room: [12, 72, 0]
     elevator: [12, 69, -0.7]
