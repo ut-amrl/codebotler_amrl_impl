@@ -21,7 +21,6 @@ import signal
 import actionlib
 from robot_actions_pkg.msg import GoToAction, GetCurrentLocationAction, IsInRoomAction, SayAction, GetAllRoomsAction, AskAction, PickAction, PlaceAction
 from robot_actions_pkg.msg import GoToResult, GetCurrentLocationResult, IsInRoomResult, SayResult, GetAllRoomsResult, AskResult, PickResult, PlaceResult
-from StoppableThread import StoppableThread
 
 class RobotActions:
     def __init__(self):
@@ -133,14 +132,14 @@ class RobotActions:
         self.nav_goal_pub.publish(goal_msg)
         time.sleep(0.2)
         while self.nav_status == 0 and success:  # to ensure that the robot has started moving
-            time.sleep(0.1)
+            time.sleep(self.DATA['SLEEP_BETWEEN_CHECKS'])
             if self.go_to_server.is_preempt_requested():
                 self.go_to_server.set_preempted()
                 success = False
                 stop_robot()
                 break
         while self.nav_status in [2, 3] and success:  # to ensure that the robot has reached the goal
-            time.sleep(0.1)
+            time.sleep(self.DATA['SLEEP_BETWEEN_CHECKS'])
             if self.go_to_server.is_preempt_requested():
                 self.go_to_server.set_preempted()
                 success = False
@@ -199,30 +198,32 @@ class RobotActions:
             self.is_in_room_server.set_succeeded(r)
 
     def say(self, goal):
-        t = StoppableThread(target=self._say, args=[goal])
-        t.run()
-        while True:
-            if self.say_server.is_preempt_requested():
-                self.say_server.set_preempted()
-                t.stop()
-                break
-            elif not self.say_server.isActive():
-                break            
-
-    def _say(self, goal):
         message = goal.message
+        success = True
         if "===SING===" in message:
             self.sing(message)
-            time.sleep(self.DATA['SLEEP_AFTER_SAY'] * word_len * 2)
-            self.say_server.set_succeeded()
+            for _ in range(self.DATA['SLEEP_AFTER_SAY'] * word_len * 2 / self.DATA['SLEEP_BETWEEN_CHECKS']):
+                time.sleep(self.DATA['SLEEP_BETWEEN_CHECKS'])
+                if self.get_all_rooms_server.is_preempt_requested():
+                    self.say_server.set_preempted()
+                    success = False
+                    break
+            if success:
+                self.say_server.set_succeeded()
             return
         msg = String()
         msg.data = message
         self.robot_say_pub.publish(msg)
         print(f"Robot says: \"{message}\"")
         word_len = len(message.split(" "))
-        time.sleep(self.DATA['SLEEP_AFTER_SAY'] * word_len * 2)
-        self.say_server.set_succeeded()
+        for _ in range(self.DATA['SLEEP_AFTER_SAY'] * word_len * 2 / self.DATA['SLEEP_BETWEEN_CHECKS']):
+            time.sleep(self.DATA['SLEEP_BETWEEN_CHECKS'])
+            if self.get_all_rooms_server.is_preempt_requested():
+                self.say_server.set_preempted()
+                success = False
+                break
+        if success:
+            self.say_server.set_succeeded(r)
             
     def sing(self, instruction: str):
         # handle here
@@ -253,20 +254,10 @@ class RobotActions:
             self.get_all_rooms_server.set_succeeded(r)
 
     def ask(self, goal):
-        t = StoppableThread(target=self._ask, args=[goal])
-        t.run()
-        while True:
-            if self.ask_server.is_preempt_requested():
-                self.ask_server.set_preempted()  
-                t.stop()  
-                break
-            elif not self.ask_server.isActive():
-                break    
-
-    def _ask(self, goal):
         person = goal.person
         question = goal.question
         options = goal.options
+        success = True
         r = AskResult()
         response = "no answer"
         if options == None:
@@ -277,12 +268,25 @@ class RobotActions:
             msg = String()
             msg.data = str(options)
             self.robot_ask_pub.publish(msg)
-            response = rospy.wait_for_message(self.DATA['HUMAN_RESPONSE_TOPIC'], String).data
+            while response == "no answer":
+                try:
+                    response = rospy.wait_for_message(self.DATA['HUMAN_RESPONSE_TOPIC'], String, timeout=self.DATA['SLEEP_BETWEEN_CHECKS']).data
+                except rospy.ROSException:
+                    if self.get_all_rooms_server.is_preempt_requested():
+                        self.say_server.set_preempted()
+                        success = False
+                        return
         print(f"Response: {response}")
         word_len = len(question.split(" "))
-        time.sleep(self.DATA['SLEEP_AFTER_ASK'] * word_len * 2)
+        for _ in range(self.DATA['SLEEP_AFTER_ASK'] * word_len * 2 / self.DATA['SLEEP_BETWEEN_CHECKS']):
+            time.sleep(self.DATA['SLEEP_BETWEEN_CHECKS'])
+            if self.get_all_rooms_server.is_preempt_requested():
+                self.say_server.set_preempted()
+                success = False
+                return
         r.result = response
-        self.ask_server.set_succeeded(r)
+        if success:
+            self.ask_server.set_succeeded(r)
 
 
 if __name__ == "__main__":
