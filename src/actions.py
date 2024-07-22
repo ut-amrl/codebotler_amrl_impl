@@ -200,7 +200,7 @@ class RobotActions:
 
     def say(self, goal):
         t = StoppableThread(target=self._say, args=[goal])
-        t.start()
+        t.run()
         while True:
             if self.say_server.is_preempt_requested():
                 t.stop()
@@ -254,10 +254,11 @@ class RobotActions:
 
     def ask(self, goal):
         t = StoppableThread(target=self._ask, args=[goal])
-        t.start()
+        t.run()
         while True:
             if self.ask_server.is_preempt_requested():
-                self.ask_server.set_preempted()                
+                t.stop()
+                self.ask_server.set_preempted()    
                 break
             elif not self.ask_server.isActive():
                 break    
