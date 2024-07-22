@@ -257,8 +257,7 @@ class RobotActions:
         t.start()
         while True:
             if self.ask_server.is_preempt_requested():
-                t.stop()
-                self.ask_server.set_preempted()
+                self.ask_server.set_preempted()                
                 break
             elif not self.ask_server.isActive():
                 break    
