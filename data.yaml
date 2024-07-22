@@ -4,7 +4,7 @@ HUMAN_RESPONSE_TOPIC: "/human_response"
 DINO:
   box_threshold: 0.6
   text_threshold: 0.4
-MAP: "gdc2"
+MAP: "gdc3"
 NAV_STATUS_TOPIC: "/navigation_goal_status"
 NAV_GOAL_TOPIC: "/move_base_simple/goal_amrl"
 CAM_IMG_TOPIC: /zed2i/zed_node/stereo/image_rect_color/compressed
@@ -48,10 +48,14 @@ LOCATIONS:
     haresh office: [11.2, 73.3, 0]
     sadanand office: [12.5, 73.5, 1.5]
   gdc3:
-    kitchen: [17.7, 14.58, 2.5]
-    joydeep office: [14.89, 14.63, -1.576]
+    # kitchen: [17.7, 14.58, 2.5]
     front door: [-5.67, 15.36, -2.58]
-    main conference room: [17.92, 13.13, -0.83]
+    conference room: [17.47, 14.03, -1.02]
+    soccer lab: [33.37, 13.26, 0.69]
+    joydeep office: [14.89, 14.85, -1.576]
+    peter office: [6.94, 14.4, -1.59]
+    roberto office: [8.24, 14.35, -1.69]
+    # north lab area: [20.39, 21.66, 0.67]
   gdc2:
     elevator: [-11.4, 7.47, -2.45]
     restroom: [-17.65, 11.22, 0]

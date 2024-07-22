@@ -52,8 +52,7 @@ class MyGUI:
         self.button_list = []
 
     def update_label(self, text):
-        # Create a gTTS object and specify the language
-        self.label.config(text=f"{text}", font=("Helvetica", 120),
+        self.label.config(text=f"{text}", font=("Helvetica", 80),
                           wraplength=int(self.master.winfo_screenwidth() * 0.8), justify="center")
         tts = gTTS(text=text, lang='en')
         current_path = os.path.abspath(__file__)
@@ -96,7 +95,12 @@ class MyGUI:
         # create a button with text "Click me!"
         self.button_list.clear()
         for option in options:
-            button = tk.Button(self.button_frame, text=option, font=("Helvetica", 60), command=lambda key=option: self.on_button_click(key))
+            if "starting location" in option:
+                continue
+            shown_text = option.replace(' ', '\'s\n')
+            if "office" in option:
+                option = option.replace(' ', '\'s ')
+            button = tk.Button(self.button_frame, text=shown_text, font=("Helvetica", 45), command=lambda key=option: self.on_button_click(key))
             button.config(width=10, height=10, pady=10)
             button.pack(side="left", fill="x", expand=True)
 

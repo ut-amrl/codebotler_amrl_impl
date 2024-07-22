@@ -79,17 +79,6 @@ class RobotActions:
         self.latest_image_data = msg.data
 
     def go_to(self, goal):
-        msg = String()
-        msg.data = "I am going to the " + str(goal.location)
-        self.robot_say_pub.publish(msg)
-        time.sleep(self.DATA['SLEEP_AFTER_SAY'] * 6 * 2)
-        success = True
-        if self.say_server.is_preempt_requested():
-            self.say_server.set_preempted()
-            success = False
-        if success:
-            self.say_server.set_succeeded()
-
         def stop_robot():
             goal_msg = Localization2DMsg()
             goal_msg.pose.x = self.cur_coords[0]
@@ -108,8 +97,29 @@ class RobotActions:
         goal_msg = Localization2DMsg()
         if location not in self.DATA['LOCATIONS'][self.DATA['MAP']].keys():
             print(f"Location {location} not found")
+            msg = String()
+            msg.data = "I don't know the location of the " + str(goal.location) + ". Aborting this mission."
+            self.robot_say_pub.publish(msg)
+            time.sleep(self.DATA['SLEEP_AFTER_SAY'] * 6 * 2)
+            success = True
+            if self.say_server.is_preempt_requested():
+                self.say_server.set_preempted()
+                success = False
+            if success:
+                self.say_server.set_succeeded()
             return
-
+        
+        msg = String()
+        msg.data = "I am going to the " + str(goal.location)
+        self.robot_say_pub.publish(msg)
+        time.sleep(self.DATA['SLEEP_AFTER_SAY'] * 6 * 2)
+        success = True
+        if self.say_server.is_preempt_requested():
+            self.say_server.set_preempted()
+            success = False
+        if success:
+            self.say_server.set_succeeded()
+            
         if type(self.cur_coords[0]) != type(None):
             curr_loc = np.array(self.cur_coords)[:2]
             goal_loc = np.array([self.DATA['LOCATIONS'][self.DATA['MAP']][location][0], self.DATA['LOCATIONS'][self.DATA['MAP']][location][1]])
@@ -190,6 +200,11 @@ class RobotActions:
 
     def say(self, goal):
         message = goal.message
+        if "===SING===" in message:
+            self.sing(message)
+            self.say_server.set_succeeded()
+            return
+        
         success = True
         msg = String()
         msg.data = message
@@ -202,6 +217,24 @@ class RobotActions:
             success = False
         if success:
             self.say_server.set_succeeded()
+            
+    def sing(self, instruction: str):
+        # handle here
+        instruction = instruction.lower()
+        # yt-dlp -x -o "a.mp3" "https://www.youtube.com/watch?v=gm3-m2CFVWM" --audio-format mp3
+        msg = String()
+        msg.data = "Give me a second. Let me look up on Youtube!"
+        self.robot_say_pub.publish(msg)
+        
+        os.system("rm song.mp3")
+        os.system("rm output_audio.mp3")
+        os.system(f'yt-dlp -x -o "song.mp3" "ytsearch1:song:{instruction}" --audio-format mp3')
+        os.system("ffmpeg -i song.mp3 -ss 00:00:20 -t 00:00:15 -acodec copy output_audio.mp3")
+        os.system('mpg123 output_audio.mp3')
+        
+        msg = String()
+        msg.data = "Here is your free trial. If you want to hear more, PAY ME!"
+        self.robot_say_pub.publish(msg)
 
     def get_all_rooms(self, goal):
         r = GetAllRoomsResult()
