@@ -21,7 +21,7 @@ import signal
 import actionlib
 from robot_actions_pkg.msg import GoToAction, GetCurrentLocationAction, IsInRoomAction, SayAction, GetAllRoomsAction, AskAction, PickAction, PlaceAction
 from robot_actions_pkg.msg import GoToResult, GetCurrentLocationResult, IsInRoomResult, SayResult, GetAllRoomsResult, AskResult, PickResult, PlaceResult
-
+from StoppableThread import StoppableThread
 
 class RobotActions:
     def __init__(self):
@@ -199,24 +199,30 @@ class RobotActions:
             self.is_in_room_server.set_succeeded(r)
 
     def say(self, goal):
+        t = StoppableThread(target=self._say, args=[goal])
+        t.start()
+        while True:
+            if self.say_server.is_preempt_requested():
+                t.stop()
+                self.say_server.set_preempted()
+                break
+            elif not self.say_server.isActive():
+                break            
+
+    def _say(self, goal):
         message = goal.message
         if "===SING===" in message:
             self.sing(message)
+            time.sleep(self.DATA['SLEEP_AFTER_SAY'] * word_len * 2)
             self.say_server.set_succeeded()
             return
-        
-        success = True
         msg = String()
         msg.data = message
         self.robot_say_pub.publish(msg)
         print(f"Robot says: \"{message}\"")
         word_len = len(message.split(" "))
         time.sleep(self.DATA['SLEEP_AFTER_SAY'] * word_len * 2)
-        if self.say_server.is_preempt_requested():
-            self.say_server.set_preempted()
-            success = False
-        if success:
-            self.say_server.set_succeeded()
+        self.say_server.set_succeeded()
             
     def sing(self, instruction: str):
         # handle here
@@ -247,11 +253,21 @@ class RobotActions:
             self.get_all_rooms_server.set_succeeded(r)
 
     def ask(self, goal):
+        t = StoppableThread(target=self._ask, args=[goal])
+        t.start()
+        while True:
+            if self.ask_server.is_preempt_requested():
+                t.stop()
+                self.ask_server.set_preempted()
+                break
+            elif not self.ask_server.isActive():
+                break    
+
+    def _ask(self, goal):
         person = goal.person
         question = goal.question
         options = goal.options
         r = AskResult()
-        success = True
         response = "no answer"
         if options == None:
             print(f"Robot asks {person}: \"{question}\"")
@@ -266,11 +282,7 @@ class RobotActions:
         word_len = len(question.split(" "))
         time.sleep(self.DATA['SLEEP_AFTER_ASK'] * word_len * 2)
         r.result = response
-        if self.ask_server.is_preempt_requested():
-            self.ask_server.set_preempted()
-            success = False
-        if success:
-            self.ask_server.set_succeeded(r)
+        self.ask_server.set_succeeded(r)
 
 
 if __name__ == "__main__":
