@@ -252,7 +252,7 @@ class RobotActions:
             msg = String()
             msg.data = str(options)
             self.robot_ask_pub.publish(msg)
-            response = rospy.wait_for_message(self.DATA['HUMAN_RESPONSE_TOPIC'], String, timeout=self.DATA['SLEEP_BETWEEN_CHECKS']).data
+            response = rospy.wait_for_message(self.DATA['HUMAN_RESPONSE_TOPIC'], String).data
         print(f"Response: {response}")
         word_len = len(question.split(" "))
         time.sleep(self.DATA['SLEEP_AFTER_ASK'] * word_len * 2 )
