@@ -223,7 +223,7 @@ class RobotActions:
                 success = False
                 break
         if success:
-            self.say_server.set_succeeded(r)
+            self.say_server.set_succeeded()
             
     def sing(self, instruction: str):
         # handle here
