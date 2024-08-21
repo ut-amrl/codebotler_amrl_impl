@@ -202,7 +202,7 @@ class RobotActions:
         success = True
         if "===SING===" in message:
             self.sing(message)
-            for _ in range(self.DATA['SLEEP_AFTER_SAY'] * word_len * 2 / self.DATA['SLEEP_BETWEEN_CHECKS']):
+            for _ in range(round(self.DATA['SLEEP_AFTER_SAY'] * word_len * 2 / self.DATA['SLEEP_BETWEEN_CHECKS'])):
                 time.sleep(self.DATA['SLEEP_BETWEEN_CHECKS'])
                 if self.say_server.is_preempt_requested():
                     self.say_server.set_preempted()
@@ -216,7 +216,7 @@ class RobotActions:
         self.robot_say_pub.publish(msg)
         print(f"Robot says: \"{message}\"")
         word_len = len(message.split(" "))
-        for _ in range(30):
+        for _ in range(round(self.DATA['SLEEP_AFTER_SAY'] * word_len * 2 / self.DATA['SLEEP_BETWEEN_CHECKS'])):
             time.sleep(self.DATA['SLEEP_BETWEEN_CHECKS'])
             if self.say_server.is_preempt_requested():
                 self.say_server.set_preempted()
@@ -281,7 +281,7 @@ class RobotActions:
                         return
         print(f"Response: {response}")
         word_len = len(question.split(" "))
-        for _ in range(self.DATA['SLEEP_AFTER_ASK'] * word_len * 2 / self.DATA['SLEEP_BETWEEN_CHECKS']):
+        for _ in range(round(self.DATA['SLEEP_AFTER_ASK'] * word_len * 2 / self.DATA['SLEEP_BETWEEN_CHECKS'])):
             time.sleep(self.DATA['SLEEP_BETWEEN_CHECKS'])
             if self.ask_server.is_preempt_requested():
                 self.ask_server.set_preempted()
