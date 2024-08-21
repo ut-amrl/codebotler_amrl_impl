@@ -284,11 +284,11 @@ class RobotActions:
         print(f"Response: {response}")
         word_len = len(ask_setup[-1].split(" "))
         time.sleep(self.DATA['SLEEP_AFTER_ASK'] * word_len * 2)
-        if self.ask_server.is_preempt_requested() or response == "Interrupt":
-            self.ask_server.set_preempted()
+        if self.pick_server.is_preempt_requested() or response == "Interrupt":
+            self.pick_server.set_preempted()
             success = False
         if success:
-            self.ask_server.set_succeeded()
+            self.pick_server.set_succeeded()
 
 
     def place(self, goal):
@@ -302,11 +302,11 @@ class RobotActions:
         print(f"Response: {response}")
         word_len = len(ask_setup[-1].split(" "))
         time.sleep(self.DATA['SLEEP_AFTER_ASK'] * word_len * 2)
-        if self.ask_server.is_preempt_requested() or response == "Interrupt":
-            self.ask_server.set_preempted()
+        if self.place_server.is_preempt_requested() or response == "Interrupt":
+            self.place_server.set_preempted()
             success = False
         if success:
-            self.ask_server.set_succeeded()
+            self.place_server.set_succeeded()
 
 
 if __name__ == "__main__":
