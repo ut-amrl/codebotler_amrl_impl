@@ -12,6 +12,7 @@ LOCALIZATION_TOPIC: "/localization"
 DIST_THRESHOLD: 1.25
 SLEEP_AFTER_SAY: 0.24
 SLEEP_AFTER_ASK: 0.1
+SLEEP_BETWEEN_CHECKS: 0.1
 
 # ------------------------------------------------------------
 ###### Format: all letters lower case, no 's or _ or - etc

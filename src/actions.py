@@ -22,7 +22,6 @@ import actionlib
 from robot_actions_pkg.msg import GoToAction, GetCurrentLocationAction, IsInRoomAction, SayAction, GetAllRoomsAction, AskAction, PickAction, PlaceAction
 from robot_actions_pkg.msg import GoToResult, GetCurrentLocationResult, IsInRoomResult, SayResult, GetAllRoomsResult, AskResult, PickResult, PlaceResult
 
-
 class RobotActions:
     def __init__(self):
         with open('../data.yaml', 'r') as f:
@@ -133,14 +132,14 @@ class RobotActions:
         self.nav_goal_pub.publish(goal_msg)
         time.sleep(0.2)
         while self.nav_status == 0 and success:  # to ensure that the robot has started moving
-            time.sleep(0.1)
+            time.sleep(self.DATA['SLEEP_BETWEEN_CHECKS'])
             if self.go_to_server.is_preempt_requested():
                 self.go_to_server.set_preempted()
                 success = False
                 stop_robot()
                 break
         while self.nav_status in [2, 3] and success:  # to ensure that the robot has reached the goal
-            time.sleep(0.1)
+            time.sleep(self.DATA['SLEEP_BETWEEN_CHECKS'])
             if self.go_to_server.is_preempt_requested():
                 self.go_to_server.set_preempted()
                 success = False
@@ -200,23 +199,34 @@ class RobotActions:
 
     def say(self, goal):
         message = goal.message
+        success = True
         if "===SING===" in message:
             self.sing(message)
-            self.say_server.set_succeeded()
+            for _ in range(round(self.DATA['SLEEP_AFTER_SAY'] * word_len * 2 / self.DATA['SLEEP_BETWEEN_CHECKS'])):
+                time.sleep(self.DATA['SLEEP_BETWEEN_CHECKS'])
+                if self.say_server.is_preempt_requested():
+                    self.say_server.set_preempted()
+                    success = False
+                    break
+            if success:
+                self.say_server.set_succeeded()
             return
-        
-        success = True
         msg = String()
         msg.data = message
         self.robot_say_pub.publish(msg)
         print(f"Robot says: \"{message}\"")
         word_len = len(message.split(" "))
-        time.sleep(self.DATA['SLEEP_AFTER_SAY'] * word_len * 2)
+        for _ in range(round(self.DATA['SLEEP_AFTER_SAY'] * word_len * 2 / self.DATA['SLEEP_BETWEEN_CHECKS'])):
+            time.sleep(self.DATA['SLEEP_BETWEEN_CHECKS'])
+            if self.say_server.is_preempt_requested():
+                self.say_server.set_preempted()
+                success = False
+                return
         if self.say_server.is_preempt_requested():
             self.say_server.set_preempted()
             success = False
-        if success:
-            self.say_server.set_succeeded()
+            return
+        self.say_server.set_succeeded()
             
     def sing(self, instruction: str):
         # handle here
@@ -250,8 +260,8 @@ class RobotActions:
         person = goal.person
         question = goal.question
         options = goal.options
-        r = AskResult()
         success = True
+        r = AskResult()
         response = "no answer"
         if options == None:
             print(f"Robot asks {person}: \"{question}\"")
@@ -262,14 +272,26 @@ class RobotActions:
             msg = String()
             msg.data = str(options)
             self.robot_ask_pub.publish(msg)
-            response = rospy.wait_for_message(self.DATA['HUMAN_RESPONSE_TOPIC'], String).data
+            while response == "no answer":
+                try:
+                    response = rospy.wait_for_message(self.DATA['HUMAN_RESPONSE_TOPIC'], String, timeout=self.DATA['SLEEP_BETWEEN_CHECKS']).data
+                except rospy.ROSException:
+                    if self.ask_server.is_preempt_requested():
+                        self.ask_server.set_preempted()
+                        success = False
+                        return
         print(f"Response: {response}")
         word_len = len(question.split(" "))
-        time.sleep(self.DATA['SLEEP_AFTER_ASK'] * word_len * 2)
-        r.result = response
+        for _ in range(round(self.DATA['SLEEP_AFTER_ASK'] * word_len * 2 / self.DATA['SLEEP_BETWEEN_CHECKS'])):
+            time.sleep(self.DATA['SLEEP_BETWEEN_CHECKS'])
+            if self.ask_server.is_preempt_requested():
+                self.ask_server.set_preempted()
+                success = False
+                return
         if self.ask_server.is_preempt_requested() or response == "Interrupt":
             self.ask_server.set_preempted()
             success = False
+        r.result = response
         if success:
             self.ask_server.set_succeeded(r)
 
