@@ -271,7 +271,7 @@ class RobotActions:
         response = rospy.wait_for_message(self.DATA['HUMAN_RESPONSE_TOPIC'], String).data
         print(f"Response: {response}")
         word_len = len(ask_setup[-1].split(" "))
-        time.sleep(self.DATA['SLEEP_AFTER_ASK'] * word_len * 2 )
+        time.sleep(self.DATA['SLEEP_AFTER_ASK'] * word_len * 2)
         if self.pick_server.is_preempt_requested() or response == "Interrupt":
             self.pick_server.set_preempted() 
             return
@@ -286,7 +286,7 @@ class RobotActions:
         response = rospy.wait_for_message(self.DATA['HUMAN_RESPONSE_TOPIC'], String).data
         print(f"Response: {response}")
         word_len = len(ask_setup[-1].split(" "))
-        time.sleep(self.DATA['SLEEP_AFTER_ASK'] * word_len * 2 )
+        time.sleep(self.DATA['SLEEP_AFTER_ASK'] * word_len * 2)
         if self.place_server.is_preempt_requested() or response == "Interrupt":
             self.place_server.set_preempted() 
             return
