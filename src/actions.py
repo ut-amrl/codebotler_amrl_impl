@@ -221,12 +221,12 @@ class RobotActions:
             if self.say_server.is_preempt_requested():
                 self.say_server.set_preempted()
                 success = False
-                break
+                return
         if self.say_server.is_preempt_requested():
             self.say_server.set_preempted()
             success = False
-        if success:
-            self.say_server.set_succeeded()
+            return
+        self.say_server.set_succeeded()
             
     def sing(self, instruction: str):
         # handle here
