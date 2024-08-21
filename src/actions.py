@@ -204,7 +204,7 @@ class RobotActions:
             self.sing(message)
             for _ in range(self.DATA['SLEEP_AFTER_SAY'] * word_len * 2 / self.DATA['SLEEP_BETWEEN_CHECKS']):
                 time.sleep(self.DATA['SLEEP_BETWEEN_CHECKS'])
-                if self.get_all_rooms_server.is_preempt_requested():
+                if self.say_server.is_preempt_requested():
                     self.say_server.set_preempted()
                     success = False
                     break
@@ -218,7 +218,7 @@ class RobotActions:
         word_len = len(message.split(" "))
         for _ in range(self.DATA['SLEEP_AFTER_SAY'] * word_len * 2 / self.DATA['SLEEP_BETWEEN_CHECKS']):
             time.sleep(self.DATA['SLEEP_BETWEEN_CHECKS'])
-            if self.get_all_rooms_server.is_preempt_requested():
+            if self.say_server.is_preempt_requested():
                 self.say_server.set_preempted()
                 success = False
                 break
