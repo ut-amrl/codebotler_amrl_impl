@@ -101,11 +101,7 @@ class RobotActions:
             self.robot_say_pub.publish(msg)
             time.sleep(self.DATA['SLEEP_AFTER_SAY'] * 6 * 2)
             success = True
-            if self.say_server.is_preempt_requested():
-                self.say_server.set_preempted()
-                success = False
-            if success:
-                self.say_server.set_succeeded()
+            self.go_to_server.set_preempted()
             return
         
         msg = String()
@@ -113,11 +109,6 @@ class RobotActions:
         self.robot_say_pub.publish(msg)
         time.sleep(self.DATA['SLEEP_AFTER_SAY'] * 6 * 2)
         success = True
-        if self.say_server.is_preempt_requested():
-            self.say_server.set_preempted()
-            success = False
-        if success:
-            self.say_server.set_succeeded()
             
         if type(self.cur_coords[0]) != type(None):
             curr_loc = np.array(self.cur_coords)[:2]
@@ -199,17 +190,14 @@ class RobotActions:
 
     def say(self, goal):
         message = goal.message
-        success = True
         if "===SING===" in message:
             self.sing(message)
             for _ in range(round(self.DATA['SLEEP_AFTER_SAY'] * word_len * 2 / self.DATA['SLEEP_BETWEEN_CHECKS'])):
                 time.sleep(self.DATA['SLEEP_BETWEEN_CHECKS'])
                 if self.say_server.is_preempt_requested():
                     self.say_server.set_preempted()
-                    success = False
-                    break
-            if success:
-                self.say_server.set_succeeded()
+                    return
+            self.say_server.set_succeeded()
             return
         msg = String()
         msg.data = message
@@ -220,12 +208,7 @@ class RobotActions:
             time.sleep(self.DATA['SLEEP_BETWEEN_CHECKS'])
             if self.say_server.is_preempt_requested():
                 self.say_server.set_preempted()
-                success = False
                 return
-        if self.say_server.is_preempt_requested():
-            self.say_server.set_preempted()
-            success = False
-            return
         self.say_server.set_succeeded()
             
     def sing(self, instruction: str):
@@ -281,6 +264,10 @@ class RobotActions:
                         success = False
                         return
         print(f"Response: {response}")
+        if response == "Interrupt":
+            self.ask_server.set_preempted()
+            success = False
+            return
         word_len = len(question.split(" "))
         for _ in range(round(self.DATA['SLEEP_AFTER_ASK'] * word_len * 2 / self.DATA['SLEEP_BETWEEN_CHECKS'])):
             time.sleep(self.DATA['SLEEP_BETWEEN_CHECKS'])
@@ -288,9 +275,6 @@ class RobotActions:
                 self.ask_server.set_preempted()
                 success = False
                 return
-        if self.ask_server.is_preempt_requested() or response == "Interrupt":
-            self.ask_server.set_preempted()
-            success = False
         r.result = response
         if success:
             self.ask_server.set_succeeded(r)
@@ -304,11 +288,17 @@ class RobotActions:
         self.robot_ask_pub.publish(msg)
         response = rospy.wait_for_message(self.DATA['HUMAN_RESPONSE_TOPIC'], String).data
         print(f"Response: {response}")
-        word_len = len(ask_setup[-1].split(" "))
-        time.sleep(self.DATA['SLEEP_AFTER_ASK'] * word_len * 2)
-        if self.pick_server.is_preempt_requested() or response == "Interrupt":
+        if response == "Interrupt":
             self.pick_server.set_preempted()
             success = False
+            return
+        word_len = len(ask_setup[-1].split(" "))
+        for _ in range(round(self.DATA['SLEEP_AFTER_ASK'] * word_len * 2 / self.DATA['SLEEP_BETWEEN_CHECKS'])):
+            time.sleep(self.DATA['SLEEP_BETWEEN_CHECKS'])
+            if self.pick_server.is_preempt_requested():
+                self.pick_server.set_preempted()
+                success = False
+                return
         if success:
             self.pick_server.set_succeeded()
 
@@ -322,11 +312,17 @@ class RobotActions:
         self.robot_ask_pub.publish(msg)
         response = rospy.wait_for_message(self.DATA['HUMAN_RESPONSE_TOPIC'], String).data
         print(f"Response: {response}")
-        word_len = len(ask_setup[-1].split(" "))
-        time.sleep(self.DATA['SLEEP_AFTER_ASK'] * word_len * 2)
-        if self.place_server.is_preempt_requested() or response == "Interrupt":
+        if response == "Interrupt":
             self.place_server.set_preempted()
             success = False
+            return
+        word_len = len(ask_setup[-1].split(" "))
+        for _ in range(round(self.DATA['SLEEP_AFTER_ASK'] * word_len * 2 / self.DATA['SLEEP_BETWEEN_CHECKS'])):
+            time.sleep(self.DATA['SLEEP_BETWEEN_CHECKS'])
+            if self.place_server.is_preempt_requested():
+                self.place_server.set_preempted()
+                success = False
+                return
         if success:
             self.place_server.set_succeeded()
 
