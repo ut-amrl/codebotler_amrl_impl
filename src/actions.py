@@ -47,8 +47,8 @@ class RobotActions:
         self.say_server = actionlib.SimpleActionServer("/say_server", SayAction, self.say, auto_start=False)
         self.get_all_rooms_server = actionlib.SimpleActionServer("/get_all_rooms_server", GetAllRoomsAction, self.get_all_rooms, auto_start=False)
         self.ask_server = actionlib.SimpleActionServer("/ask_server", AskAction, self.ask, auto_start=False)
-        self.pick_server = actionlib.SimpleActionServer("/pick_server", PickAction, self.get_all_rooms, auto_start=False)
-        self.place_server = actionlib.SimpleActionServer("/place_server", PlaceAction, self.get_all_rooms, auto_start=False)
+        self.pick_server = actionlib.SimpleActionServer("/pick_server", PickAction, self.pick, auto_start=False)
+        self.place_server = actionlib.SimpleActionServer("/place_server", PlaceAction, self.place, auto_start=False)
         self.go_to_server.start()
         self.get_current_location_server.start()
         self.is_in_room_server.start()
@@ -257,6 +257,7 @@ class RobotActions:
             print(f"Robot asks {person}: \"{question}\"")
         else:
             print(f"Robot asks {person}: \"{question}\" with options {options}")
+            options.append("Interrupt")
             options.append(question)
             msg = String()
             msg.data = str(options)
@@ -266,11 +267,46 @@ class RobotActions:
         word_len = len(question.split(" "))
         time.sleep(self.DATA['SLEEP_AFTER_ASK'] * word_len * 2)
         r.result = response
-        if self.ask_server.is_preempt_requested():
+        if self.ask_server.is_preempt_requested() or response == "Interrupt":
             self.ask_server.set_preempted()
             success = False
         if success:
             self.ask_server.set_succeeded(r)
+
+    def pick(self, goal):
+        object = goal.obj
+        ask_setup = ["Done", "Interrupt", f"Please place {object} in my basket."]
+        success = True
+        msg = String()
+        msg.data = str(ask_setup)
+        self.robot_ask_pub.publish(msg)
+        response = rospy.wait_for_message(self.DATA['HUMAN_RESPONSE_TOPIC'], String).data
+        print(f"Response: {response}")
+        word_len = len(ask_setup[-1].split(" "))
+        time.sleep(self.DATA['SLEEP_AFTER_ASK'] * word_len * 2)
+        if self.ask_server.is_preempt_requested() or response == "Interrupt":
+            self.ask_server.set_preempted()
+            success = False
+        if success:
+            self.ask_server.set_succeeded()
+
+
+    def place(self, goal):
+        object = goal.obj
+        ask_setup = ["Done", "Interrupt", f"Please take {object} from my basket."]
+        success = True
+        msg = String()
+        msg.data = str(ask_setup)
+        self.robot_ask_pub.publish(msg)
+        response = rospy.wait_for_message(self.DATA['HUMAN_RESPONSE_TOPIC'], String).data
+        print(f"Response: {response}")
+        word_len = len(ask_setup[-1].split(" "))
+        time.sleep(self.DATA['SLEEP_AFTER_ASK'] * word_len * 2)
+        if self.ask_server.is_preempt_requested() or response == "Interrupt":
+            self.ask_server.set_preempted()
+            success = False
+        if success:
+            self.ask_server.set_succeeded()
 
 
 if __name__ == "__main__":
