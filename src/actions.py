@@ -214,6 +214,8 @@ class RobotActions:
         msg = String()
         msg.data = message
         self.robot_say_pub.publish(msg)
+        self.say_server.set_succeeded()
+        return
         print(f"Robot says: \"{message}\"")
         word_len = len(message.split(" "))
         for _ in range(self.DATA['SLEEP_AFTER_SAY'] * word_len * 2 / self.DATA['SLEEP_BETWEEN_CHECKS']):
