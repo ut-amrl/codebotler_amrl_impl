@@ -222,6 +222,9 @@ class RobotActions:
                 self.say_server.set_preempted()
                 success = False
                 break
+        if self.say_server.is_preempt_requested():
+            self.say_server.set_preempted()
+            success = False
         if success:
             self.say_server.set_succeeded()
             
@@ -284,6 +287,9 @@ class RobotActions:
                 self.ask_server.set_preempted()
                 success = False
                 return
+        if self.ask_server.is_preempt_requested():
+            self.ask_server.set_preempted()
+            success = False
         r.result = response
         if success:
             self.ask_server.set_succeeded(r)
