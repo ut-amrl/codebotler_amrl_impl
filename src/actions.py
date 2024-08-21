@@ -190,25 +190,23 @@ class RobotActions:
 
     def say(self, goal):
         message = goal.message
+        word_len = len(message.split(" "))
         if "===SING===" in message:
             self.sing(message)
-            for _ in range(round(self.DATA['SLEEP_AFTER_SAY'] * word_len * 2 / self.DATA['SLEEP_BETWEEN_CHECKS'])):
-                time.sleep(self.DATA['SLEEP_BETWEEN_CHECKS'])
-                if self.say_server.is_preempt_requested():
-                    self.say_server.set_preempted()
-                    return
+            time.sleep(self.DATA['SLEEP_AFTER_SAY'] * word_len * 2)
+            if self.say_server.is_preempt_requested():
+                self.say_server.set_preempted()
+                return
             self.say_server.set_succeeded()
             return
         msg = String()
         msg.data = message
         self.robot_say_pub.publish(msg)
         print(f"Robot says: \"{message}\"")
-        word_len = len(message.split(" "))
-        for _ in range(round(self.DATA['SLEEP_AFTER_SAY'] * word_len * 2 / self.DATA['SLEEP_BETWEEN_CHECKS'])):
-            time.sleep(self.DATA['SLEEP_BETWEEN_CHECKS'])
-            if self.say_server.is_preempt_requested():
-                self.say_server.set_preempted()
-                return
+        time.sleep(self.DATA['SLEEP_AFTER_SAY'] * word_len * 2)
+        if self.say_server.is_preempt_requested():
+            self.say_server.set_preempted()
+            return
         self.say_server.set_succeeded()
             
     def sing(self, instruction: str):
@@ -243,7 +241,6 @@ class RobotActions:
         person = goal.person
         question = goal.question
         options = goal.options
-        success = True
         r = AskResult()
         response = "no answer"
         if options == None:
@@ -255,76 +252,45 @@ class RobotActions:
             msg = String()
             msg.data = str(options)
             self.robot_ask_pub.publish(msg)
-            while response == "no answer":
-                try:
-                    response = rospy.wait_for_message(self.DATA['HUMAN_RESPONSE_TOPIC'], String, timeout=self.DATA['SLEEP_BETWEEN_CHECKS']).data
-                except rospy.ROSException:
-                    if self.ask_server.is_preempt_requested():
-                        self.ask_server.set_preempted()
-                        success = False
-                        return
+            response = rospy.wait_for_message(self.DATA['HUMAN_RESPONSE_TOPIC'], String, timeout=self.DATA['SLEEP_BETWEEN_CHECKS']).data
         print(f"Response: {response}")
-        if response == "Interrupt":
-            self.ask_server.set_preempted()
-            success = False
-            return
         word_len = len(question.split(" "))
-        for _ in range(round(self.DATA['SLEEP_AFTER_ASK'] * word_len * 2 / self.DATA['SLEEP_BETWEEN_CHECKS'])):
-            time.sleep(self.DATA['SLEEP_BETWEEN_CHECKS'])
-            if self.ask_server.is_preempt_requested():
-                self.ask_server.set_preempted()
-                success = False
-                return
-        r.result = response
-        if success:
-            self.ask_server.set_succeeded(r)
+        time.sleep(self.DATA['SLEEP_AFTER_ASK'] * word_len * 2 )
+        if self.ask_server.is_preempt_requested() or response == "Interrupt":
+            self.ask_server.set_preempted() 
+            return
+        r.result = response           
+        self.ask_server.set_succeeded(r)
 
     def pick(self, goal):
         object = goal.obj
         ask_setup = ["Done", "Interrupt", f"Please place {object} in my basket."]
-        success = True
         msg = String()
         msg.data = str(ask_setup)
         self.robot_ask_pub.publish(msg)
         response = rospy.wait_for_message(self.DATA['HUMAN_RESPONSE_TOPIC'], String).data
         print(f"Response: {response}")
-        if response == "Interrupt":
-            self.pick_server.set_preempted()
-            success = False
-            return
         word_len = len(ask_setup[-1].split(" "))
-        for _ in range(round(self.DATA['SLEEP_AFTER_ASK'] * word_len * 2 / self.DATA['SLEEP_BETWEEN_CHECKS'])):
-            time.sleep(self.DATA['SLEEP_BETWEEN_CHECKS'])
-            if self.pick_server.is_preempt_requested():
-                self.pick_server.set_preempted()
-                success = False
-                return
-        if success:
-            self.pick_server.set_succeeded()
-
+        time.sleep(self.DATA['SLEEP_AFTER_ASK'] * word_len * 2 )
+        if self.pick_server.is_preempt_requested() or response == "Interrupt":
+            self.pick_server.set_preempted() 
+            return
+        self.pick_server.set_succeeded()
 
     def place(self, goal):
         object = goal.obj
         ask_setup = ["Done", "Interrupt", f"Please take {object} from my basket."]
-        success = True
         msg = String()
         msg.data = str(ask_setup)
         self.robot_ask_pub.publish(msg)
         response = rospy.wait_for_message(self.DATA['HUMAN_RESPONSE_TOPIC'], String).data
         print(f"Response: {response}")
-        if response == "Interrupt":
-            self.place_server.set_preempted()
-            success = False
-            return
         word_len = len(ask_setup[-1].split(" "))
-        for _ in range(round(self.DATA['SLEEP_AFTER_ASK'] * word_len * 2 / self.DATA['SLEEP_BETWEEN_CHECKS'])):
-            time.sleep(self.DATA['SLEEP_BETWEEN_CHECKS'])
-            if self.place_server.is_preempt_requested():
-                self.place_server.set_preempted()
-                success = False
-                return
-        if success:
-            self.place_server.set_succeeded()
+        time.sleep(self.DATA['SLEEP_AFTER_ASK'] * word_len * 2 )
+        if self.place_server.is_preempt_requested() or response == "Interrupt":
+            self.place_server.set_preempted() 
+            return
+        self.place_server.set_succeeded()
 
 
 if __name__ == "__main__":
