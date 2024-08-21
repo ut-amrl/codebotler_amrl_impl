@@ -216,14 +216,15 @@ class RobotActions:
         self.robot_say_pub.publish(msg)
         print(f"Robot says: \"{message}\"")
         word_len = len(message.split(" "))
+        self.say_server.set_succeeded()
+        return
         for _ in range(self.DATA['SLEEP_AFTER_SAY'] * word_len * 2 / self.DATA['SLEEP_BETWEEN_CHECKS']):
             time.sleep(self.DATA['SLEEP_BETWEEN_CHECKS'])
             if self.say_server.is_preempt_requested():
                 self.say_server.set_preempted()
                 success = False
                 return
-        self.say_server.set_succeeded()
-        return
+        
         if self.say_server.is_preempt_requested():
             self.say_server.set_preempted()
             success = False
