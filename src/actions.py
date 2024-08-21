@@ -272,7 +272,7 @@ class RobotActions:
                 try:
                     response = rospy.wait_for_message(self.DATA['HUMAN_RESPONSE_TOPIC'], String, timeout=self.DATA['SLEEP_BETWEEN_CHECKS']).data
                 except rospy.ROSException:
-                    if self.get_all_rooms_server.is_preempt_requested():
+                    if self.ask_server.is_preempt_requested():
                         self.ask_server.set_preempted()
                         success = False
                         return
@@ -280,7 +280,7 @@ class RobotActions:
         word_len = len(question.split(" "))
         for _ in range(self.DATA['SLEEP_AFTER_ASK'] * word_len * 2 / self.DATA['SLEEP_BETWEEN_CHECKS']):
             time.sleep(self.DATA['SLEEP_BETWEEN_CHECKS'])
-            if self.get_all_rooms_server.is_preempt_requested():
+            if self.ask_server.is_preempt_requested():
                 self.ask_server.set_preempted()
                 success = False
                 return
