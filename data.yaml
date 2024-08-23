@@ -65,3 +65,7 @@ LOCATIONS:
     front door: [-26.36, -8.27, 3.06]
     outside: [-34.44, -7.06, -3.08]
     stairs: [-20.32, -2.21, 2.69]
+  ahgm:
+    rwik office: [1.5, 47.5, -1.57]
+    mason office: [3.8, 47.15, 1.57]
+    conference room: [3.8, 52.15, 1]
