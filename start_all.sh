@@ -1,5 +1,7 @@
 #!/bin/bash
 
+export DISPLAY=:0.0
+
 ut_jackal_path=$(realpath third_party/ut_jackal)
 echo $ut_jackal_path
 graph_nav_path=$(realpath third_party/ut_jackal/graph_navigation)
