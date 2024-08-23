@@ -151,9 +151,9 @@ class RobotActions:
         if min_dist <= self.DATA['DIST_THRESHOLD']:
             return closest_loc
         else:
-            self.DATA['LOCATIONS'][self.DATA['MAP']][f"starting location"] = list(new_loc)  # Add new location to the dictionary
+            self.DATA['LOCATIONS'][self.DATA['MAP']][f"starting_location"] = list(new_loc)  # Add new location to the dictionary
             # self.new_loc_counter += 1
-            return "starting location"
+            return "starting_location"
 
     def get_current_location(self, goal):
         r = GetCurrentLocationResult()
