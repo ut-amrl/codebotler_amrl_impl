@@ -66,6 +66,6 @@ LOCATIONS:
     outside: [-34.44, -7.06, -3.08]
     stairs: [-20.32, -2.21, 2.69]
   ahgm:
-    rwik office: [1.5, 47.5, -1.6]
+    rwik office: [1.5, 47.5, -1.1]
     mason office: [4.2, 47.1, 0.6]
-    conference room: [4.2, 52.5, 0.6]
+    conference room: [4.2, 52.1, 0.6]
