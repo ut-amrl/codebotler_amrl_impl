@@ -1,17 +1,20 @@
-#!/bin/bash 
+#!/bin/bash
+
+# Exit immediately if a command exits with a non-zero status
+set -e
 
 git submodule update --init --recursive
 pip install -r requirements.txt
 
-ut_jackal_path=$(realpath third_party/ut_jackal)
-echo $ut_jackal_path
-graph_nav_path=$(realpath third_party/ut_jackal/graph_navigation)
+spot_autonomy_path=$(realpath third_party/spot_autonomy)
+echo $spot_autonomy_path
+graph_nav_path=$(realpath third_party/spot_autonomy/graph_navigation)
 echo $graph_nav_path
 
 cd third_party/GroundingDINO
 pip install -q -e .
 
-mkdir weights/
+mkdir weights/ || true
 cd weights/
 if test -f groundingdino_swint_ogc.pth; then
   echo "model weights already exists, skipping installation"
@@ -21,14 +24,14 @@ else
 fi
 cd ../
 
-if [[ $ROS_PACKAGE_PATH == *"ut_jackal"* ]]; then
-    echo "Removing ut_jackal from ROS_PACKAGE_PATH..."
-    export ROS_PACKAGE_PATH=$(echo $ROS_PACKAGE_PATH | tr ':' '\n' | grep -v "ut_jackal" | paste -sd: -)
+if [[ $ROS_PACKAGE_PATH == *"spot_autonomy"* ]]; then
+    echo "Removing spot_autonomy from ROS_PACKAGE_PATH..."
+    export ROS_PACKAGE_PATH=$(echo $ROS_PACKAGE_PATH | tr ':' '\n' | grep -v "spot_autonomy" | paste -sd: -)
 fi
 # Add the new path to ROS_PACKAGE_PATH
-if [[ $ROS_PACKAGE_PATH != *"$ut_jackal_path"* ]]; then
-    echo "Adding $ut_jackal_path to ROS_PACKAGE_PATH..."
-    export ROS_PACKAGE_PATH=$ut_jackal_path:$ROS_PACKAGE_PATH
+if [[ $ROS_PACKAGE_PATH != *"$spot_autonomy_path"* ]]; then
+    echo "Adding $spot_autonomy_path to ROS_PACKAGE_PATH..."
+    export ROS_PACKAGE_PATH=$spot_autonomy_path:$ROS_PACKAGE_PATH
 fi
 
 if [[ $ROS_PACKAGE_PATH == *"graph_navigation"* ]]; then
@@ -41,9 +44,27 @@ if [[ $ROS_PACKAGE_PATH != *"$graph_nav_path"* ]]; then
     export ROS_PACKAGE_PATH=$graph_nav_path:$ROS_PACKAGE_PATH
 fi
 
-cd ../ut_jackal
-make -j$(nproc)
+# Initialize Conda in this script
+eval "$(/opt/miniconda3/bin/conda shell.bash hook)"  # This is the recommended way to initialize Conda in scripts
+# deactivate conda env for building spot_autonomy
+if [ -z "$CONDA_DEFAULT_ENV" ]; then
+    echo "No Conda environment is currently active."
+    CURRENT_ENV=""
+else
+    CURRENT_ENV="$CONDA_DEFAULT_ENV"
+    echo "Deactivating Conda environment: $CURRENT_ENV"
+    conda deactivate
+fi
+cd ../spot_autonomy
+make clean && make -j$(nproc)
 cd ../../
+# Reactivate the previous Conda environment if it was active
+if [ -z "$CURRENT_ENV" ]; then
+    echo "No Conda environment was previously active. Skipping activation."
+else
+    echo "Reactivating Conda environment: $CURRENT_ENV"
+    conda activate "$CURRENT_ENV"
+fi
 
 # Give execute permissions to all scripts
 find . -maxdepth 1 \( -name "*.py" -o -name "*.sh" \) -exec chmod +x {} \;

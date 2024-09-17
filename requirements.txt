@@ -2,3 +2,5 @@ defusedxml
 opencv-python
 gtts
 SpeechRecognition
+rospkg
+empy
