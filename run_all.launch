@@ -1,5 +1,5 @@
 <launch>
-    <!-- Jackal autonomy stack -->
+    <!-- Spot autonomy stack -->
     <include file="$(find spot_autonomy)/launch/start_all.launch" />
 
     <node name="gui"
