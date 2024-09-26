@@ -3,6 +3,9 @@
 # Exit immediately if a command exits with a non-zero status
 set -e
 
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
 git submodule update --init --recursive
 pip install -r requirements.txt
 
@@ -57,6 +60,8 @@ else
 fi
 cd ../spot_autonomy
 make clean && make -j$(nproc)
+cp launch/start_clearpath_spot.launch.example launch/start_clearpath_spot.launch
+echo -e "${RED}Add Spot credentials to the start_clearpath_spot.launch file in spot_autonomy of codebotler_amrl_impl${NC}"
 cd ../../
 # Reactivate the previous Conda environment if it was active
 if [ -z "$CURRENT_ENV" ]; then
