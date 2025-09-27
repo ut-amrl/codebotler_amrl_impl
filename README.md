@@ -9,7 +9,7 @@ You should have the following built and available in your ROS2 workspace:
 3. zed_wrapper - ROS2 version
 4. ouster_ros - ROS2 version
 5. pointcloud_to_laserscan - ROS2 version
-6. robot_actions_pkg - ROS2 version (contains action definitions)
+6. [cobot_codebotler_actions](https://github.com/ut-amrl/cobot/cobot_codebotler_actions) - ROS2 version (contains action definitions)
 
 ### Setup
 1. Clone this repository
@@ -31,7 +31,7 @@ You should have the following built and on your `ROS_PACKAGE_PATH`:
 3. zed_wrapper
 4. ouster_ros
 5. pointcloud_to_laserscan
-6. [ros actions](action/Ask.action): use catkin_make to create
+6. [cobot_codebotler_actions](https://github.com/ut-amrl/cobot/cobot_codebotler_actions): contains action definitions
 
 ### Setup
 1. Clone this repository

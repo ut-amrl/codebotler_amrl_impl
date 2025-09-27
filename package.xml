@@ -17,10 +17,9 @@
   <depend>action_msgs</depend>
   <depend>builtin_interfaces</depend>
   
-  <!-- TODO: take care of transitioning this part properly yourselves -->
-  <!-- External ROS1 dependencies that need ROS2 equivalents -->
+  <!-- External dependencies -->
   <depend>amrl_msgs</depend>
-  <depend>robot_actions_pkg</depend>
+  <depend>cobot_codebotler_actions</depend>
   
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

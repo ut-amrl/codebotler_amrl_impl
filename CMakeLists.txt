@@ -15,10 +15,9 @@ find_package(geometry_msgs REQUIRED)
 find_package(action_msgs REQUIRED)
 find_package(builtin_interfaces REQUIRED)
 
-# TODO: take care of transitioning this part properly yourselves
-# External ROS1 dependencies that need ROS2 equivalents
+# External dependencies
 find_package(amrl_msgs REQUIRED)
-find_package(robot_actions_pkg REQUIRED)
+find_package(cobot_codebotler_actions REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -47,27 +46,7 @@ find_package(robot_actions_pkg REQUIRED)
 #   Service2.srv
 # )
 
-## Generate actions in the 'action' folder
-add_action_files(
-  FILES
-  Ask.action
-  GetAllRooms.action
-  GetCurrentLocation.action
-  GoTo.action
-  IsInRoom.action
-  Pick.action
-  Place.action
-  Say.action
-)
-
-## Generate action interfaces
-rosidl_generate_interfaces(${PROJECT_NAME}
-  ${action_files}
-  DEPENDENCIES
-  std_msgs
-  action_msgs
-  builtin_interfaces
-)
+## Actions are now provided by cobot_codebotler_actions package
 
 ################################################
 ## ROS2 dynamic reconfigure parameters ##
@@ -117,11 +96,7 @@ install(FILES
   DESTINATION share/${PROJECT_NAME}/
 )
 
-## Install action files
-install(DIRECTORY
-  action
-  DESTINATION share/${PROJECT_NAME}/
-)
+## Action files are now provided by cobot_codebotler_actions package
 
 #############
 ## Testing ##

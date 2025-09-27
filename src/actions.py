@@ -19,11 +19,9 @@ import shutil
 import signal
 import threading
 
-# TODO: take care of transitioning this part properly yourselves
-# External ROS1 message types that need ROS2 equivalents
+# External message types
 from amrl_msgs.msg import NavStatusMsg, Localization2DMsg
-from robot_actions_pkg.msg import GoToAction, GetCurrentLocationAction, IsInRoomAction, SayAction, GetAllRoomsAction, AskAction, PickAction, PlaceAction
-from robot_actions_pkg.msg import GoToResult, GetCurrentLocationResult, IsInRoomResult, SayResult, GetAllRoomsResult, AskResult, PickResult, PlaceResult
+from cobot_codebotler_actions.action import GoTo, GetCurrentLocation, IsInRoom, Say, GetAllRooms, Ask, Pick, Place
 
 
 class RobotActions(Node):
@@ -45,14 +43,14 @@ class RobotActions(Node):
         self.cur_coords = (None, None, None)  # (x, y, theta)
 
         # Action servers
-        self.go_to_server = ActionServer(self, GoToAction, "/go_to_server", self.go_to_callback)
-        self.get_current_location_server = ActionServer(self, GetCurrentLocationAction, "/get_current_location_server", self.get_current_location_callback)
-        self.is_in_room_server = ActionServer(self, IsInRoomAction, "/is_in_room_server", self.is_in_room_callback)
-        self.say_server = ActionServer(self, SayAction, "/say_server", self.say_callback)
-        self.get_all_rooms_server = ActionServer(self, GetAllRoomsAction, "/get_all_rooms_server", self.get_all_rooms_callback)
-        self.ask_server = ActionServer(self, AskAction, "/ask_server", self.ask_callback)
-        self.pick_server = ActionServer(self, PickAction, "/pick_server", self.pick_callback)
-        self.place_server = ActionServer(self, PlaceAction, "/place_server", self.place_callback)
+        self.go_to_server = ActionServer(self, GoTo, "/go_to_server", self.go_to_callback)
+        self.get_current_location_server = ActionServer(self, GetCurrentLocation, "/get_current_location_server", self.get_current_location_callback)
+        self.is_in_room_server = ActionServer(self, IsInRoom, "/is_in_room_server", self.is_in_room_callback)
+        self.say_server = ActionServer(self, Say, "/say_server", self.say_callback)
+        self.get_all_rooms_server = ActionServer(self, GetAllRooms, "/get_all_rooms_server", self.get_all_rooms_callback)
+        self.ask_server = ActionServer(self, Ask, "/ask_server", self.ask_callback)
+        self.pick_server = ActionServer(self, Pick, "/pick_server", self.pick_callback)
+        self.place_server = ActionServer(self, Place, "/place_server", self.place_callback)
 
         # Publishers
         self.nav_goal_pub = self.create_publisher(Localization2DMsg, self.DATA['NAV_GOAL_TOPIC'], 1)
@@ -76,7 +74,7 @@ class RobotActions(Node):
 
     def go_to_callback(self, goal_handle):
         goal = goal_handle.request
-        result = GoToResult()
+        result = GoTo.Result()
         
         def stop_robot():
             goal_msg = Localization2DMsg()
@@ -152,7 +150,7 @@ class RobotActions(Node):
             return "starting location"
 
     def get_current_location_callback(self, goal_handle):
-        result = GetCurrentLocationResult()
+        result = GetCurrentLocation.Result()
         result.result = self._check_and_update_locations(self.cur_coords)
         goal_handle.succeed()
         return result
@@ -160,7 +158,7 @@ class RobotActions(Node):
     def is_in_room_callback(self, goal_handle):
         goal = goal_handle.request
         object = goal.object
-        result = IsInRoomResult()
+        result = IsInRoom.Result()
         img1 = np.frombuffer(self.latest_image_data, np.uint8)
         img2 = cv2.imdecode(img1, cv2.IMREAD_COLOR)
         img3 = np.array(cv2.cvtColor(img2, cv2.COLOR_BGR2RGB))
@@ -179,7 +177,7 @@ class RobotActions(Node):
 
     def say_callback(self, goal_handle):
         goal = goal_handle.request
-        result = SayResult()
+        result = Say.Result()
         message = goal.message
         if "===SING===" in message:
             self.sing(message)
@@ -214,7 +212,7 @@ class RobotActions(Node):
         self.robot_say_pub.publish(msg)
 
     def get_all_rooms_callback(self, goal_handle):
-        result = GetAllRoomsResult()
+        result = GetAllRooms.Result()
         result.result = list(self.DATA['LOCATIONS'][self.DATA['MAP']].keys())
         goal_handle.succeed()
         return result
@@ -224,7 +222,7 @@ class RobotActions(Node):
         person = goal.person
         question = goal.question
         options = goal.options
-        result = AskResult()
+        result = Ask.Result()
         response = "no answer"
         if options == None:
             print(f"Robot asks {person}: \"{question}\"")
@@ -247,14 +245,16 @@ class RobotActions(Node):
     def pick_callback(self, goal_handle):
         # TODO: take care of transitioning this part properly yourselves
         # Implement pick functionality
+        result = Pick.Result()
         goal_handle.succeed()
-        return PickResult()
+        return result
 
     def place_callback(self, goal_handle):
         # TODO: take care of transitioning this part properly yourselves
         # Implement place functionality
+        result = Place.Result()
         goal_handle.succeed()
-        return PlaceResult()
+        return result
 
 
 def main(args=None):
