@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 
-import roslib
-roslib.load_manifest('amrl_msgs')
 from zero_shot_object_detector import GroundingDINO
-import rospy
+import rclpy
+from rclpy.node import Node
+from rclpy.action import ActionServer
+from rclpy.executors import MultiThreadedExecutor
 import yaml
-from amrl_msgs.msg import NavStatusMsg
-from amrl_msgs.msg import Localization2DMsg
 from std_msgs.msg import String
 from sensor_msgs.msg import CompressedImage
 import cv2
@@ -18,13 +17,18 @@ import sys
 from PIL import Image
 import shutil
 import signal
-import actionlib
+import threading
+
+# TODO: take care of transitioning this part properly yourselves
+# External ROS1 message types that need ROS2 equivalents
+from amrl_msgs.msg import NavStatusMsg, Localization2DMsg
 from robot_actions_pkg.msg import GoToAction, GetCurrentLocationAction, IsInRoomAction, SayAction, GetAllRoomsAction, AskAction, PickAction, PlaceAction
 from robot_actions_pkg.msg import GoToResult, GetCurrentLocationResult, IsInRoomResult, SayResult, GetAllRoomsResult, AskResult, PickResult, PlaceResult
 
 
-class RobotActions:
+class RobotActions(Node):
     def __init__(self):
+        super().__init__('robot_low_level_actions')
         with open('../data.yaml', 'r') as f:
             self.DATA = yaml.safe_load(f)
 
@@ -41,33 +45,25 @@ class RobotActions:
         self.cur_coords = (None, None, None)  # (x, y, theta)
 
         # Action servers
-        self.go_to_server = actionlib.SimpleActionServer("/go_to_server", GoToAction, self.go_to, auto_start=False)
-        self.get_current_location_server = actionlib.SimpleActionServer("/get_current_location_server", GetCurrentLocationAction, self.get_current_location, auto_start=False)
-        self.is_in_room_server = actionlib.SimpleActionServer("/is_in_room_server", IsInRoomAction, self.is_in_room, auto_start=False)
-        self.say_server = actionlib.SimpleActionServer("/say_server", SayAction, self.say, auto_start=False)
-        self.get_all_rooms_server = actionlib.SimpleActionServer("/get_all_rooms_server", GetAllRoomsAction, self.get_all_rooms, auto_start=False)
-        self.ask_server = actionlib.SimpleActionServer("/ask_server", AskAction, self.ask, auto_start=False)
-        self.pick_server = actionlib.SimpleActionServer("/pick_server", PickAction, self.get_all_rooms, auto_start=False)
-        self.place_server = actionlib.SimpleActionServer("/place_server", PlaceAction, self.get_all_rooms, auto_start=False)
-        self.go_to_server.start()
-        self.get_current_location_server.start()
-        self.is_in_room_server.start()
-        self.say_server.start()
-        self.get_all_rooms_server.start()
-        self.ask_server.start()
-        self.pick_server.start()
-        self.place_server.start()
+        self.go_to_server = ActionServer(self, GoToAction, "/go_to_server", self.go_to_callback)
+        self.get_current_location_server = ActionServer(self, GetCurrentLocationAction, "/get_current_location_server", self.get_current_location_callback)
+        self.is_in_room_server = ActionServer(self, IsInRoomAction, "/is_in_room_server", self.is_in_room_callback)
+        self.say_server = ActionServer(self, SayAction, "/say_server", self.say_callback)
+        self.get_all_rooms_server = ActionServer(self, GetAllRoomsAction, "/get_all_rooms_server", self.get_all_rooms_callback)
+        self.ask_server = ActionServer(self, AskAction, "/ask_server", self.ask_callback)
+        self.pick_server = ActionServer(self, PickAction, "/pick_server", self.pick_callback)
+        self.place_server = ActionServer(self, PlaceAction, "/place_server", self.place_callback)
 
         # Publishers
-        self.nav_goal_pub = rospy.Publisher(self.DATA['NAV_GOAL_TOPIC'], Localization2DMsg, queue_size=1)
-        self.robot_say_pub = rospy.Publisher(self.DATA['ROBOT_SAY_TOPIC'], String, queue_size=1)
-        self.robot_ask_pub = rospy.Publisher(self.DATA['ROBOT_ASK_TOPIC'], String, queue_size=1)
+        self.nav_goal_pub = self.create_publisher(Localization2DMsg, self.DATA['NAV_GOAL_TOPIC'], 1)
+        self.robot_say_pub = self.create_publisher(String, self.DATA['ROBOT_SAY_TOPIC'], 1)
+        self.robot_ask_pub = self.create_publisher(String, self.DATA['ROBOT_ASK_TOPIC'], 1)
 
         # Subscribers
-        rospy.Subscriber(self.DATA['LOCALIZATION_TOPIC'], Localization2DMsg, self.localization_callback, queue_size=1)
-        rospy.Subscriber(self.DATA['NAV_STATUS_TOPIC'], NavStatusMsg, self.nav_status_callback, queue_size=1)
-        rospy.Subscriber(self.DATA['CAM_IMG_TOPIC'], CompressedImage, self.image_callback, queue_size=1, buff_size=2**32)
-        print("======= Started all robot action servers =======")
+        self.localization_sub = self.create_subscription(Localization2DMsg, self.DATA['LOCALIZATION_TOPIC'], self.localization_callback, 1)
+        self.nav_status_sub = self.create_subscription(NavStatusMsg, self.DATA['NAV_STATUS_TOPIC'], self.nav_status_callback, 1)
+        self.image_sub = self.create_subscription(CompressedImage, self.DATA['CAM_IMG_TOPIC'], self.image_callback, 1)
+        self.get_logger().info("======= Started all robot action servers =======")
 
     def nav_status_callback(self, msg):
         self.nav_status = msg.status
@@ -78,7 +74,10 @@ class RobotActions:
     def image_callback(self, msg):
         self.latest_image_data = msg.data
 
-    def go_to(self, goal):
+    def go_to_callback(self, goal_handle):
+        goal = goal_handle.request
+        result = GoToResult()
+        
         def stop_robot():
             goal_msg = Localization2DMsg()
             goal_msg.pose.x = self.cur_coords[0]
@@ -101,54 +100,41 @@ class RobotActions:
             msg.data = "I don't know the location of the " + str(goal.location) + ". Aborting this mission."
             self.robot_say_pub.publish(msg)
             time.sleep(self.DATA['SLEEP_AFTER_SAY'] * 6 * 2)
-            success = True
-            if self.say_server.is_preempt_requested():
-                self.say_server.set_preempted()
-                success = False
-            if success:
-                self.say_server.set_succeeded()
-            return
+            goal_handle.succeed()
+            return result
         
         msg = String()
         msg.data = "I am going to the " + str(goal.location)
         self.robot_say_pub.publish(msg)
         time.sleep(self.DATA['SLEEP_AFTER_SAY'] * 6 * 2)
-        success = True
-        if self.say_server.is_preempt_requested():
-            self.say_server.set_preempted()
-            success = False
-        if success:
-            self.say_server.set_succeeded()
             
         if type(self.cur_coords[0]) != type(None):
             curr_loc = np.array(self.cur_coords)[:2]
             goal_loc = np.array([self.DATA['LOCATIONS'][self.DATA['MAP']][location][0], self.DATA['LOCATIONS'][self.DATA['MAP']][location][1]])
             if np.linalg.norm(curr_loc - goal_loc) < self.DATA['DIST_THRESHOLD']:
-                self.go_to_server.set_succeeded()
-                return
+                goal_handle.succeed()
+                return result
 
         goal_msg.pose.x = self.DATA['LOCATIONS'][self.DATA['MAP']][location][0]
         goal_msg.pose.y = self.DATA['LOCATIONS'][self.DATA['MAP']][location][1]
         goal_msg.pose.theta = self.DATA['LOCATIONS'][self.DATA['MAP']][location][2]
         self.nav_goal_pub.publish(goal_msg)
         time.sleep(0.2)
-        while self.nav_status == 0 and success:  # to ensure that the robot has started moving
+        while self.nav_status == 0:  # to ensure that the robot has started moving
             time.sleep(0.1)
-            if self.go_to_server.is_preempt_requested():
-                self.go_to_server.set_preempted()
-                success = False
+            if goal_handle.is_cancel_requested:
+                goal_handle.canceled()
                 stop_robot()
-                break
-        while self.nav_status in [2, 3] and success:  # to ensure that the robot has reached the goal
+                return result
+        while self.nav_status in [2, 3]:  # to ensure that the robot has reached the goal
             time.sleep(0.1)
-            if self.go_to_server.is_preempt_requested():
-                self.go_to_server.set_preempted()
-                success = False
+            if goal_handle.is_cancel_requested:
+                goal_handle.canceled()
                 stop_robot()
-                break
+                return result
         time.sleep(1)  # to ensure that the robot has stopped moving
-        if success:
-            self.go_to_server.set_succeeded()
+        goal_handle.succeed()
+        return result
 
     def _check_and_update_locations(self, new_loc):
         min_dist = np.inf
@@ -165,20 +151,16 @@ class RobotActions:
             # self.new_loc_counter += 1
             return "starting location"
 
-    def get_current_location(self, goal):
-        r = GetCurrentLocationResult()
-        success = True
-        r.result = self._check_and_update_locations(self.cur_coords)
-        if self.get_current_location_server.is_preempt_requested():
-            self.get_current_location_server.set_preempted()
-            success = False
-        if success:
-            self.get_current_location_server.set_succeeded(r)
+    def get_current_location_callback(self, goal_handle):
+        result = GetCurrentLocationResult()
+        result.result = self._check_and_update_locations(self.cur_coords)
+        goal_handle.succeed()
+        return result
 
-    def is_in_room(self, goal):
+    def is_in_room_callback(self, goal_handle):
+        goal = goal_handle.request
         object = goal.object
-        r = IsInRoomResult()
-        success = True
+        result = IsInRoomResult()
         img1 = np.frombuffer(self.latest_image_data, np.uint8)
         img2 = cv2.imdecode(img1, cv2.IMREAD_COLOR)
         img3 = np.array(cv2.cvtColor(img2, cv2.COLOR_BGR2RGB))
@@ -191,32 +173,27 @@ class RobotActions:
         ann_image = Image.fromarray(np.array(annotated_frame).astype(np.uint8))
         ann_image.save(os.path.join(image_dir, f"annotated_frame_{self.current_image_num}.png"))
         self.current_image_num += 1
-        r.result = (len(boxes) > 0)
-        if self.is_in_room_server.is_preempt_requested():
-            self.is_in_room_server.set_preempted()
-            success = False
-        if success:
-            self.is_in_room_server.set_succeeded(r)
+        result.result = (len(boxes) > 0)
+        goal_handle.succeed()
+        return result
 
-    def say(self, goal):
+    def say_callback(self, goal_handle):
+        goal = goal_handle.request
+        result = SayResult()
         message = goal.message
         if "===SING===" in message:
             self.sing(message)
-            self.say_server.set_succeeded()
-            return
+            goal_handle.succeed()
+            return result
         
-        success = True
         msg = String()
         msg.data = message
         self.robot_say_pub.publish(msg)
         print(f"Robot says: \"{message}\"")
         word_len = len(message.split(" "))
         time.sleep(self.DATA['SLEEP_AFTER_SAY'] * word_len * 2)
-        if self.say_server.is_preempt_requested():
-            self.say_server.set_preempted()
-            success = False
-        if success:
-            self.say_server.set_succeeded()
+        goal_handle.succeed()
+        return result
             
     def sing(self, instruction: str):
         # handle here
@@ -236,22 +213,18 @@ class RobotActions:
         msg.data = "Here is your free trial. If you want to hear more, PAY ME!"
         self.robot_say_pub.publish(msg)
 
-    def get_all_rooms(self, goal):
-        r = GetAllRoomsResult()
-        success = True
-        r.result = list(self.DATA['LOCATIONS'][self.DATA['MAP']].keys())
-        if self.get_all_rooms_server.is_preempt_requested():
-            self.get_all_rooms_server.set_preempted()
-            success = False
-        if success:
-            self.get_all_rooms_server.set_succeeded(r)
+    def get_all_rooms_callback(self, goal_handle):
+        result = GetAllRoomsResult()
+        result.result = list(self.DATA['LOCATIONS'][self.DATA['MAP']].keys())
+        goal_handle.succeed()
+        return result
 
-    def ask(self, goal):
+    def ask_callback(self, goal_handle):
+        goal = goal_handle.request
         person = goal.person
         question = goal.question
         options = goal.options
-        r = AskResult()
-        success = True
+        result = AskResult()
         response = "no answer"
         if options == None:
             print(f"Robot asks {person}: \"{question}\"")
@@ -261,28 +234,53 @@ class RobotActions:
             msg = String()
             msg.data = str(options)
             self.robot_ask_pub.publish(msg)
-            response = rospy.wait_for_message(self.DATA['HUMAN_RESPONSE_TOPIC'], String).data
+            # TODO: take care of transitioning this part properly yourselves
+            # ROS2 equivalent of wait_for_message needs to be implemented
+            response = "no answer"  # Placeholder - need ROS2 message waiting
         print(f"Response: {response}")
         word_len = len(question.split(" "))
         time.sleep(self.DATA['SLEEP_AFTER_ASK'] * word_len * 2)
-        r.result = response
-        if self.ask_server.is_preempt_requested():
-            self.ask_server.set_preempted()
-            success = False
-        if success:
-            self.ask_server.set_succeeded(r)
+        result.result = response
+        goal_handle.succeed()
+        return result
+
+    def pick_callback(self, goal_handle):
+        # TODO: take care of transitioning this part properly yourselves
+        # Implement pick functionality
+        goal_handle.succeed()
+        return PickResult()
+
+    def place_callback(self, goal_handle):
+        # TODO: take care of transitioning this part properly yourselves
+        # Implement place functionality
+        goal_handle.succeed()
+        return PlaceResult()
+
+
+def main(args=None):
+    rclpy.init(args=args)
+    
+    robot_actions = RobotActions()
+    
+    def signal_handler(sig, frame):
+        print("Ctrl+C detected! Killing server...")
+        robot_actions.destroy_node()
+        rclpy.shutdown()
+        sys.exit(0)
+    
+    signal.signal(signal.SIGINT, signal_handler)
+    
+    executor = MultiThreadedExecutor()
+    executor.add_node(robot_actions)
+    
+    try:
+        executor.spin()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        robot_actions.destroy_node()
+        rclpy.shutdown()
 
 
 if __name__ == "__main__":
-    rospy.init_node('robot_low_level_actions', anonymous=False)
-    ra = RobotActions()
-
-    def signal_handler(sig, frame):
-        print("Ctrl+C detected! Killing server...")
-        rospy.sleep(5)
-        sys.exit(0)
-
-    signal.signal(signal.SIGINT, signal_handler)
-
-    time.sleep(1)
-    rospy.spin()
+    main()

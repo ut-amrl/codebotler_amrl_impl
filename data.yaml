@@ -1,3 +1,4 @@
+# ROS2 topic names (already following ROS2 conventions with forward slashes)
 ROBOT_SAY_TOPIC: "/robot_say"
 ROBOT_ASK_TOPIC: "/robot_ask"
 HUMAN_RESPONSE_TOPIC: "/human_response"
@@ -7,7 +8,7 @@ DINO:
 MAP: "gdc3"
 NAV_STATUS_TOPIC: "/navigation_goal_status"
 NAV_GOAL_TOPIC: "/move_base_simple/goal_amrl"
-CAM_IMG_TOPIC: /zed2i/zed_node/stereo/image_rect_color/compressed
+CAM_IMG_TOPIC: "/zed2i/zed_node/stereo/image_rect_color/compressed"
 LOCALIZATION_TOPIC: "/localization"
 DIST_THRESHOLD: 1.25
 SLEEP_AFTER_SAY: 0.24

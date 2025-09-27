@@ -2,12 +2,14 @@
 
 import os
 import sys
-import rospy
+import rclpy
+from rclpy.node import Node
 from std_msgs.msg import String
 import tkinter as tk
 from gtts import gTTS
 import speech_recognition as sr
 import yaml
+import threading
 
 
 def listen_for_yes_or_no():
@@ -30,8 +32,9 @@ def listen_for_yes_or_no():
                 print(f"Speech recognition request failed: {e}")
 
 
-class MyGUI:
+class MyGUI(Node):
     def __init__(self, master):
+        super().__init__('gui_interface')
         with open('../data.yaml', 'r') as f:
             self.DATA = yaml.safe_load(f)
         self.master = master
@@ -43,10 +46,9 @@ class MyGUI:
         self.label = tk.Label(master, text="Jackal :)", font=("Helvetica", 180))
         self.label.pack(anchor=tk.CENTER, expand=True)
 
-        rospy.init_node('gui_interface', disable_signals=True)
-        self.robot_say_sub = rospy.Subscriber(self.DATA['ROBOT_SAY_TOPIC'], String, self.message_cb)
-        self.robot_ask_sub = rospy.Subscriber(self.DATA['ROBOT_ASK_TOPIC'], String, self.ask_cb)
-        self.human_response_pub = rospy.Publisher(self.DATA['HUMAN_RESPONSE_TOPIC'], String, queue_size=10)
+        self.robot_say_sub = self.create_subscription(String, self.DATA['ROBOT_SAY_TOPIC'], self.message_cb, 10)
+        self.robot_ask_sub = self.create_subscription(String, self.DATA['ROBOT_ASK_TOPIC'], self.ask_cb, 10)
+        self.human_response_pub = self.create_publisher(String, self.DATA['HUMAN_RESPONSE_TOPIC'], 10)
 
         self.options = []  # hardcode
         self.button_list = []
@@ -107,12 +109,27 @@ class MyGUI:
             self.button_list.append(button)
 
 
-if __name__ == '__main__':
+def main(args=None):
+    rclpy.init(args=args)
+    
     print("start gui")
     root = tk.Tk()
     my_gui = MyGUI(root)
+    
+    def spin_ros():
+        while rclpy.ok():
+            rclpy.spin_once(my_gui, timeout_sec=0.1)
+    
+    ros_thread = threading.Thread(target=spin_ros, daemon=True)
+    ros_thread.start()
+    
     try:
         root.mainloop()
     except KeyboardInterrupt:
-        rospy.signal_shutdown("User shutdown")
+        my_gui.destroy_node()
+        rclpy.shutdown()
         raise
+
+
+if __name__ == '__main__':
+    main()

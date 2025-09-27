@@ -4,3 +4,9 @@
 **/__pycache__/
 **/.vscode/
 **/.openai_api_key
+
+build/
+devel/
+install/
+log/
+bin/

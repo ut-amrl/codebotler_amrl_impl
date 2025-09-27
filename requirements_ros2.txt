@@ -1,0 +1,14 @@
+# ROS2 Python dependencies
+defusedxml
+opencv-python
+gtts
+SpeechRecognition
+
+# Additional ROS2 dependencies that might be needed
+# (These are typically installed with ROS2, but listed here for completeness)
+# rclpy
+# std_msgs
+# sensor_msgs
+# geometry_msgs
+# action_msgs
+# builtin_interfaces
