@@ -10,15 +10,17 @@ You should have the following built and available in your ROS2 workspace:
 4. ouster_ros - ROS2 version
 5. pointcloud_to_laserscan - ROS2 version
 6. [cobot_codebotler_actions](https://github.com/ut-amrl/cobot/cobot_codebotler_actions) - ROS2 version (contains action definitions)
+7. ut_jackal autonomy stack - launched separately
 
 ### Setup
 1. Clone this repository
-2. Run `setup_ros2.sh` to install dependencies and build the workspace
+2. Run `./setup.sh` to install dependencies and build the workspace
 3. Source the workspace: `source install/setup.bash`
 
 ### Usage
-1. Run `ros2 launch codebotler_amrl_impl start_all.py` to launch all the nodes
-2. Or use the convenience script: `./start_all.sh`
+1. Launch ut_jackal autonomy stack separately
+2. Run `ros2 launch codebotler_amrl_impl start_all.py` to launch the codebotler nodes
+3. Or use the convenience script: `./start_all.sh`
 
 ---
 
