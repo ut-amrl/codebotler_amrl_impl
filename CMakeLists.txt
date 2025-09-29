@@ -55,17 +55,9 @@ find_package(cobot_codebotler_actions REQUIRED)
 ## ROS2 uses rclcpp parameters instead of dynamic reconfigure
 ## Parameters are handled through the node's parameter interface
 
-###################################
-## ament specific configuration ##
-###################################
-ament_package()
-
 ###########
 ## Build ##
 ###########
-
-## Install Python modules
-ament_python_install_package(${PROJECT_NAME})
 
 ## Install Python scripts
 install(PROGRAMS
@@ -74,15 +66,6 @@ install(PROGRAMS
   src/zero_shot_object_detector.py
   DESTINATION lib/${PROJECT_NAME}
 )
-
-## ROS2 C++ library and executable setup
-## This package uses Python only, no C++ code
-
-#############
-## Install ##
-#############
-
-## ROS2 installation targets use ament DESTINATION variables
 
 ## Install launch files
 install(DIRECTORY
@@ -96,7 +79,10 @@ install(FILES
   DESTINATION share/${PROJECT_NAME}/
 )
 
-## Action files are now provided by cobot_codebotler_actions package
+###################################
+## ament specific configuration ##
+###################################
+ament_package()
 
 #############
 ## Testing ##
