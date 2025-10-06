@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 
-from zero_shot_object_detector import GroundingDINO
 import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionServer
 from rclpy.executors import MultiThreadedExecutor
 import yaml
-from std_msgs.msg import String
+from std_msgs.msg import String, Bool
 from sensor_msgs.msg import CompressedImage
 import cv2
 import numpy as np
@@ -33,9 +32,14 @@ class RobotActions(Node):
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         config_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../third_party/GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py")
-        weights_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../third_party/GroundingDINO", "weights", "groundingdino_swint_ogc.pth")
-        self.object_detector_model = GroundingDINO(box_threshold=self.DATA['DINO']['box_threshold'], text_threshold=self.DATA['DINO']['text_threshold'], device=self.device, config_path=config_path, weights_path=weights_path)
+        # TODO: hacked (ie commented out) for now, add this weights setup from setup.sh into the dockerfile
+        # from zero_shot_object_detector import GroundingDINO
+        # weights_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../third_party/GroundingDINO", "weights", "groundingdino_swint_ogc.pth")
+        # self.object_detector_model = GroundingDINO(box_threshold=self.DATA['DINO']['box_threshold'], text_threshold=self.DATA['DINO']['text_threshold'], device=self.device, config_path=config_path, weights_path=weights_path)
+        self.object_detector_model = None   # remove this once you set up the above thing
+
         self.latest_image_data = None
+        self.pick_status = False
         self.nav_status = None
         self.current_image_num = 0
         if os.path.exists(os.path.join("..", "images")):
@@ -61,8 +65,13 @@ class RobotActions(Node):
         # Subscribers
         self.localization_sub = self.create_subscription(Localization2DMsg, self.DATA['LOCALIZATION_TOPIC'], self.localization_callback, 1)
         self.nav_status_sub = self.create_subscription(NavStatusMsg, self.DATA['NAV_STATUS_TOPIC'], self.nav_status_callback, 1)
+        self.pick_status_sub = self.create_subscription(Bool, self.DATA['PICK_STATUS_TOPIC'], self.pick_status_callback, 5)
         self.image_sub = self.create_subscription(CompressedImage, self.DATA['CAM_IMG_TOPIC'], self.image_callback, 1)
         self.get_logger().info("======= Started all robot action servers =======")
+    
+    def pick_status_callback(self, msg):
+        # True = done, False = not done
+        self.pick_status = msg.data
 
     def nav_status_callback(self, msg):
         self.nav_status = msg.status
@@ -158,12 +167,12 @@ class RobotActions(Node):
 
     def is_in_room_callback(self, goal_handle):
         goal = goal_handle.request
-        object = goal.object
+        obj = goal.object
         result = IsInRoom.Result()
         img1 = np.frombuffer(self.latest_image_data, np.uint8)
         img2 = cv2.imdecode(img1, cv2.IMREAD_COLOR)
         img3 = np.array(cv2.cvtColor(img2, cv2.COLOR_BGR2RGB))
-        boxes, logits, phrases, annotated_frame = self.object_detector_model.predict_from_image(img3, object)
+        boxes, logits, phrases, annotated_frame = self.object_detector_model.predict_from_image(img3, obj)
 
         image_dir = os.path.join("..", "images")
         if not os.path.exists(image_dir):
@@ -252,10 +261,14 @@ class RobotActions(Node):
         return result
 
     def pick_callback(self, goal_handle):
-        # TODO: take care of transitioning this part properly yourselves
-        # Implement pick functionality
+        print(f"Recieved a pick request!!")
+        goal = goal_handle.request
         result = Pick.Result()
+        while self.pick_status == False:
+            time.sleep(0.05)
+
         goal_handle.succeed()
+        self.pick_status = False # reset the status here
         return result
 
     def place_callback(self, goal_handle):
