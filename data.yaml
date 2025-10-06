@@ -5,10 +5,11 @@ HUMAN_RESPONSE_TOPIC: "/human_response"
 DINO:
   box_threshold: 0.6
   text_threshold: 0.4
-MAP: "gdc3"
+MAP: "ahg2"
+PICK_STATUS_TOPIC: "/pick_goal_status"
 NAV_STATUS_TOPIC: "/navigation_goal_status"
 NAV_GOAL_TOPIC: "/move_base_simple/goal_amrl"
-CAM_IMG_TOPIC: "/zed2i/zed_node/stereo/image_rect_color/compressed"
+CAM_IMG_TOPIC: "/rgb/image_raw"
 LOCALIZATION_TOPIC: "/localization"
 DIST_THRESHOLD: 1.25
 SLEEP_AFTER_SAY: 0.24
@@ -39,6 +40,16 @@ LOCATIONS:
     main entrance: [41.36, 65.20, 2.20]
     conference room: [46.70, 64.73, -1.54]
     elevator: [12.68, 65.36, -2.52]
+    television room: [8.5, 69.6, -0.81]
+    tv room: [8.5, 69.6, -0.81]
+    t v room: [8.5, 69.6, -0.81]
+    tv: [8.5, 69.6, -0.81]
+      #workstation: [3.04, 72.64, -3.07]
+      #work station: [3.04, 72.64, -3.07]
+    workstation: [2.9, 72.64, -3.07]
+    work station: [2.9, 72.64, -3.07]
+  ahg2apt:
+    table: [9.63, 57.87, -3.06]
   ahg_amrl:
     tv room: [12, 72, 0]
     elevator: [12, 69, -0.7]
