@@ -18,6 +18,7 @@ from PIL import Image
 import shutil
 import signal
 import threading
+import subprocess
 
 # External message types
 from amrl_msgs.msg import NavStatusMsg, Localization2DMsg
@@ -179,10 +180,11 @@ class RobotActions(Node):
         goal = goal_handle.request
         result = Say.Result()
         message = goal.message
-        if "===SING===" in message:
-            self.sing(message)
-            goal_handle.succeed()
-            return result
+        #if "===SING===" in message:
+        #    self.sing(message)
+        #    goal_handle.succeed()
+        #    return result
+        self.say(message)
         
         msg = String()
         msg.data = message
@@ -192,7 +194,14 @@ class RobotActions(Node):
         time.sleep(self.DATA['SLEEP_AFTER_SAY'] * word_len * 2)
         goal_handle.succeed()
         return result
-            
+
+    def say(self, instruction: str):
+        # espeak --stdout -s 75 -p 75 "Ask me what I can do" | aplay -D sysdefault:CARD=P20
+        espeak = subprocess.Popen(["/usr/bin/espeak", "--stdout", "-s", "105", "-p", "75", f"\"{instruction}\""], stdout=subprocess.PIPE)
+        aplay = subprocess.Popen(["/usr/bin/aplay", "-D", "sysdefault:CARD=P20"], stdin=espeak.stdout)
+        espeak.wait()
+        aplay.wait()
+
     def sing(self, instruction: str):
         # handle here
         instruction = instruction.lower()
