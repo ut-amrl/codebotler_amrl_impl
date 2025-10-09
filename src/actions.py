@@ -6,14 +6,15 @@ from rclpy.action import ActionServer
 from rclpy.executors import MultiThreadedExecutor
 import yaml
 from std_msgs.msg import String, Bool
-from sensor_msgs.msg import CompressedImage
+from sensor_msgs.msg import Image
+from cv_bridge import CvBridge
 import cv2
 import numpy as np
 import time
 import torch
 import os
 import sys
-from PIL import Image
+from PIL import Image as Img
 import shutil
 import signal
 import threading
@@ -31,19 +32,26 @@ class RobotActions(Node):
             self.DATA = yaml.safe_load(f)
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        config_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../third_party/GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py")
-        # TODO: hacked (ie commented out) for now, add this weights setup from setup.sh into the dockerfile
-        # from zero_shot_object_detector import GroundingDINO
-        # weights_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../third_party/GroundingDINO", "weights", "groundingdino_swint_ogc.pth")
-        # self.object_detector_model = GroundingDINO(box_threshold=self.DATA['DINO']['box_threshold'], text_threshold=self.DATA['DINO']['text_threshold'], device=self.device, config_path=config_path, weights_path=weights_path)
-        self.object_detector_model = None   # remove this once you set up the above thing
+        config_path = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), 
+            "../third_party/GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py")
+        weights_path = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), 
+            "../third_party/GroundingDINO", "weights", "groundingdino_swint_ogc.pth")
+        from zero_shot_object_detector import GroundingDINO
+        self.object_detector_model = GroundingDINO(
+            box_threshold=self.DATA['DINO']['box_threshold'],
+            text_threshold=self.DATA['DINO']['text_threshold'], 
+            device=self.device, 
+            config_path=config_path, 
+            weights_path=weights_path)
 
-        self.latest_image_data = None
-        self.pick_status = False
-        self.nav_status = None
+        self.latest_image_msg = None
         self.current_image_num = 0
         if os.path.exists(os.path.join("..", "images")):
             shutil.rmtree(os.path.join("..", "images"))
+        self.pick_status = False
+        self.nav_status = None
         self.new_loc_counter = 0
         self.cur_coords = (None, None, None)  # (x, y, theta)
 
@@ -66,7 +74,8 @@ class RobotActions(Node):
         self.localization_sub = self.create_subscription(Localization2DMsg, self.DATA['LOCALIZATION_TOPIC'], self.localization_callback, 1)
         self.nav_status_sub = self.create_subscription(NavStatusMsg, self.DATA['NAV_STATUS_TOPIC'], self.nav_status_callback, 1)
         self.pick_status_sub = self.create_subscription(Bool, self.DATA['PICK_STATUS_TOPIC'], self.pick_status_callback, 5)
-        self.image_sub = self.create_subscription(CompressedImage, self.DATA['CAM_IMG_TOPIC'], self.image_callback, 1)
+        self.image_sub = self.create_subscription(Image, self.DATA['CAM_IMG_TOPIC'], self.image_callback, 5)
+        self.bridge = CvBridge()
         self.get_logger().info("======= Started all robot action servers =======")
     
     def pick_status_callback(self, msg):
@@ -80,7 +89,7 @@ class RobotActions(Node):
         self.cur_coords = (msg.pose.x, msg.pose.y, msg.pose.theta)
 
     def image_callback(self, msg):
-        self.latest_image_data = msg.data
+        self.latest_image_msg = msg
 
     def go_to_callback(self, goal_handle):
         goal = goal_handle.request
@@ -168,22 +177,29 @@ class RobotActions(Node):
     def is_in_room_callback(self, goal_handle):
         goal = goal_handle.request
         obj = goal.object
-        result = IsInRoom.Result()
-        img1 = np.frombuffer(self.latest_image_data, np.uint8)
-        img2 = cv2.imdecode(img1, cv2.IMREAD_COLOR)
-        img3 = np.array(cv2.cvtColor(img2, cv2.COLOR_BGR2RGB))
-        boxes, logits, phrases, annotated_frame = self.object_detector_model.predict_from_image(img3, obj)
+        print(f"Recieved is_in_room request for {obj}")
+        answer = IsInRoom.Result()
+        if self.latest_image_msg is None:
+            print(f"No image available from camera!")
+            answer.result = False
+            goal_handle.succeed()
+            return answer
+
+        img1 = self.bridge.imgmsg_to_cv2(self.latest_image_msg, desired_encoding='rgb8')
+        boxes, logits, phrases, annotated_frame = self.object_detector_model.predict_from_image(img1, obj)
 
         image_dir = os.path.join("..", "images")
         if not os.path.exists(image_dir):
             os.makedirs(image_dir)
 
-        ann_image = Image.fromarray(np.array(annotated_frame).astype(np.uint8))
+        ann_image = Img.fromarray(np.array(annotated_frame).astype(np.uint8))
         ann_image.save(os.path.join(image_dir, f"annotated_frame_{self.current_image_num}.png"))
         self.current_image_num += 1
-        result.result = (len(boxes) > 0)
+        num_boxes = len(boxes)
+        answer.result = (num_boxes > 0)
         goal_handle.succeed()
-        return result
+        print(f"Detected {num_boxes} boxes")
+        return answer
 
     def say_callback(self, goal_handle):
         goal = goal_handle.request
