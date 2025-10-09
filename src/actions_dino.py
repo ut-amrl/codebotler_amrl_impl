@@ -62,6 +62,11 @@ class RobotActions(Node):
         obj = goal.object
         print(f"Recieved is_in_room request for {obj}")
         answer = IsInRoom.Result()
+        if self.latest_image_msg is None:
+            print(f"No image available from camera!")
+            answer.result = False
+            return answer
+
         img1 = self.bridge.imgmsg_to_cv2(self.latest_image_msg, desired_encoding='rgb8')
 
         #img1 = np.frombuffer(self.latest_image_data, np.uint8)
@@ -80,7 +85,7 @@ class RobotActions(Node):
         answer.result = (num_boxes > 0)
         goal_handle.succeed()
         print(f"Detected {num_boxes} boxes")
-        return result
+        return answer
     
 
 def main(args=None):

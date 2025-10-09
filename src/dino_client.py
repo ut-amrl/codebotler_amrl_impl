@@ -48,7 +48,7 @@ class RobotInterface(Node):
 def main(args=None):
     rclpy.init(args=args)
     r = RobotInterface()
-    r.is_in_room("soda can")
+    r.is_in_room("chairs")
     rclpy.shutdown()
 
 if __name__ == "__main__":
