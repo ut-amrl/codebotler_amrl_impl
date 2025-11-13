@@ -39,12 +39,13 @@ class RobotActions(Node):
             os.path.dirname(os.path.realpath(__file__)), 
             "../third_party/GroundingDINO", "weights", "groundingdino_swint_ogc.pth")
         from zero_shot_object_detector import GroundingDINO
-        self.object_detector_model = GroundingDINO(
-            box_threshold=self.DATA['DINO']['box_threshold'],
-            text_threshold=self.DATA['DINO']['text_threshold'], 
-            device=self.device, 
-            config_path=config_path, 
-            weights_path=weights_path)
+        # self.object_detector_model = GroundingDINO(
+        #     box_threshold=self.DATA['DINO']['box_threshold'],
+        #     text_threshold=self.DATA['DINO']['text_threshold'], 
+        #     device=self.device, 
+        #     config_path=config_path, 
+        #     weights_path=weights_path) # TODO uncomment me
+        self.object_detector_model = None  # TODO: remove me after uncommenting above
 
         self.latest_image_msg = None
         self.current_image_num = 0
@@ -96,6 +97,8 @@ class RobotActions(Node):
         result = GoTo.Result()
         
         def stop_robot():
+            if type(self.cur_coords[0]) == type(None):
+                return
             goal_msg = Localization2DMsg()
             goal_msg.pose.x = self.cur_coords[0]
             goal_msg.pose.y = self.cur_coords[1]
@@ -125,32 +128,67 @@ class RobotActions(Node):
         self.robot_say_pub.publish(msg)
         time.sleep(self.DATA['SLEEP_AFTER_SAY'] * 6 * 2)
             
-        if type(self.cur_coords[0]) != type(None):
-            curr_loc = np.array(self.cur_coords)[:2]
-            goal_loc = np.array([self.DATA['LOCATIONS'][self.DATA['MAP']][location][0], self.DATA['LOCATIONS'][self.DATA['MAP']][location][1]])
-            if np.linalg.norm(curr_loc - goal_loc) < self.DATA['DIST_THRESHOLD']:
-                goal_handle.succeed()
-                return result
+        goal_xytheta = self.DATA['LOCATIONS'][self.DATA['MAP']][location]
+        goal_xy = np.array(goal_xytheta[:2])
 
-        goal_msg.pose.x = self.DATA['LOCATIONS'][self.DATA['MAP']][location][0]
-        goal_msg.pose.y = self.DATA['LOCATIONS'][self.DATA['MAP']][location][1]
-        goal_msg.pose.theta = self.DATA['LOCATIONS'][self.DATA['MAP']][location][2]
+        def current_distance():
+            if type(self.cur_coords[0]) == type(None):
+                return None
+            curr_loc = np.array(self.cur_coords)[:2]
+            return np.linalg.norm(curr_loc - goal_xy)
+
+        dist = current_distance()
+        if dist is not None and dist < self.DATA['DIST_THRESHOLD']:
+            goal_handle.succeed()
+            return result
+
+        goal_msg.pose.x = goal_xytheta[0]
+        goal_msg.pose.y = goal_xytheta[1]
+        goal_msg.pose.theta = goal_xytheta[2]
         self.nav_goal_pub.publish(goal_msg)
         time.sleep(0.2)
-        while self.nav_status == 0:  # to ensure that the robot has started moving
-            time.sleep(0.1)
+
+        wait_start = time.time()
+        while self.nav_status is None:
             if goal_handle.is_cancel_requested:
                 goal_handle.canceled()
                 stop_robot()
                 return result
-        while self.nav_status in [2, 3]:  # to ensure that the robot has reached the goal
-            time.sleep(0.1)
+            if time.time() - wait_start > 2.0:
+                break
+            time.sleep(0.05)
+
+        nav_deadline = time.time() + 120.0
+        motion_started = False
+        resend_count = 0
+
+        while time.time() < nav_deadline:
             if goal_handle.is_cancel_requested:
                 goal_handle.canceled()
                 stop_robot()
                 return result
-        time.sleep(1)  # to ensure that the robot has stopped moving
-        goal_handle.succeed()
+
+            status = self.nav_status
+            if status in [2, 3]:
+                motion_started = True
+
+            if status == 0 and motion_started:
+                dist = current_distance()
+                if dist is not None and dist < self.DATA['DIST_THRESHOLD']:
+                    goal_handle.succeed()
+                    return result
+                if resend_count < 2:
+                    self.nav_goal_pub.publish(goal_msg)
+                    resend_count += 1
+                    motion_started = False
+                    time.sleep(0.2)
+                    continue
+                break
+
+            time.sleep(0.1)
+
+        stop_robot()
+        goal_handle.abort()
         return result
 
     def _check_and_update_locations(self, new_loc):
