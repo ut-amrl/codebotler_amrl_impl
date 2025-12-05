@@ -5,10 +5,10 @@ HUMAN_RESPONSE_TOPIC: "/human_response"
 DINO:
   box_threshold: 0.6
   text_threshold: 0.4
-MAP: "ahg2"
+MAP: "ahg2apt"
 PICK_STATUS_TOPIC: "/pick_goal_status"
-NAV_STATUS_TOPIC: "/navigation_goal_status"
-NAV_GOAL_TOPIC: "/move_base_simple/goal_amrl"
+NAV_STATUS_TOPIC: "/basenav_t/navigation_goal_status"
+NAV_GOAL_TOPIC: "/basenav_t/move_base_simple/goal_amrl"
 CAM_IMG_TOPIC: "/rgb/image_raw"
 LOCALIZATION_TOPIC: "/localization"
 DIST_THRESHOLD: 1.25
@@ -47,8 +47,25 @@ LOCATIONS:
     tv: [-0.108, 5.37, 1.889]
     workstation: [5.26, 1.01, -0.07]
     work station: [5.26, 1.01, -0.07]
+
+    ##################
+    # MOCK APARTMENT #
+    ##################
+    kitchen_counter: [-5.24, -5.71, 2.17]
+    two_chair_table: []
+    kitchen_island: []
+
   ahg2apt:
-    table: [9.63, 57.87, -3.06]
+    # table: [9.63, 57.87, -3.06]
+    kitchen sink: [3.47, -0.04, 1.57]
+    living room: [3.35,  -12.2, 0.0]
+    living room table: [3.35,  -12.2, 0.0]
+    snack table: [6.65, -6.38, -1.57]
+    tv: [2.3, -12.05, -3.14]
+    tv room: [2.3, -12.05, -3.14]
+    tv area: [2.3, -12.05, -3.14]
+    dining table:  [4.12, -4.8, 1.57]
+
   ahg_amrl:
     tv room: [12, 72, 0]
     elevator: [12, 69, -0.7]
