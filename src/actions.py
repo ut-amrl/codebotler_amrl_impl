@@ -248,7 +248,12 @@ class RobotActions(Node):
         
         response = future.result()
         num_detections = int(response.n)
-        
+
+        # Save image
+        print(type(img_bgr))
+        img_pil = Img.fromarray(cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB))
+        img_pil.save(f'/home/ros/cobot_ws/images/{obj}_num_detections_{response.n}__time_{time.time()}.png')
+
         # # Save annotated image if detections found
         # if num_detections > 0:
         #     image_dir = os.path.join("..", "images")
