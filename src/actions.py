@@ -70,11 +70,12 @@ class RobotActions(Node):
         self.nav_goal_pub = self.create_publisher(Localization2DMsg, self.DATA['NAV_GOAL_TOPIC'], 1)
         self.robot_say_pub = self.create_publisher(String, self.DATA['ROBOT_SAY_TOPIC'], 1)
         self.robot_ask_pub = self.create_publisher(String, self.DATA['ROBOT_ASK_TOPIC'], 1)
+        self.pick_request_pub = self.create_publisher(String, "/pick_request", 10)
 
         # Subscribers
         self.localization_sub = self.create_subscription(Localization2DMsg, self.DATA['LOCALIZATION_TOPIC'], self.localization_callback, 1)
         self.nav_status_sub = self.create_subscription(NavStatusMsg, self.DATA['NAV_STATUS_TOPIC'], self.nav_status_callback, 1)
-        self.pick_status_sub = self.create_subscription(Bool, self.DATA['PICK_STATUS_TOPIC'], self.pick_status_callback, 5)
+        self.pick_status_sub = self.create_subscription(Bool, "/pick_goal_status", self.pick_status_callback, 5)
         self.image_sub = self.create_subscription(Image, self.DATA['CAM_IMG_TOPIC'], self.image_callback, 5)
         self.bridge = CvBridge()
         self.get_logger().info("======= Started all robot action servers =======")
@@ -169,11 +170,16 @@ class RobotActions(Node):
                 return result
 
             status = self.nav_status
-            if status in [2, 3]:
+            # if status in [2, 3]: # TODO
+            if status in [1, 2, 3]: # TODO
                 motion_started = True
 
             if status == 0 and motion_started:
                 dist = current_distance()
+                if dist is None:
+                    time.sleep(0.5)
+                    goal_handle.succeed()
+                    return result
                 if dist is not None and dist < self.DATA['DIST_THRESHOLD']:
                     goal_handle.succeed()
                     return result
@@ -318,6 +324,17 @@ class RobotActions(Node):
         print(f"Recieved a pick request!!")
         goal = goal_handle.request
         result = Pick.Result()
+        
+        # Extract object name from the goal
+        object_name = goal.object if hasattr(goal, 'object') else str(goal)
+        
+        # Reset status and publish the pick request
+        self.pick_status = False
+        pick_msg = String()
+        pick_msg.data = object_name
+        self.pick_request_pub.publish(pick_msg)
+        
+        # Wait for pick to complete
         while self.pick_status == False:
             time.sleep(0.05)
 

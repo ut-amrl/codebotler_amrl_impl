@@ -2,3 +2,4 @@ defusedxml
 opencv-python
 gtts
 SpeechRecognition
+numpy==1.26.1
