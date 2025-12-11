@@ -22,6 +22,7 @@ import subprocess
 
 # External message types
 from amrl_msgs.msg import NavStatusMsg, Localization2DMsg
+from amrl_msgs.srv import GroundedSAM2Srv
 from cobot_codebotler_actions.action import GoTo, GetCurrentLocation, IsInRoom, Say, GetAllRooms, Ask, Pick, Place
 
 
@@ -31,21 +32,11 @@ class RobotActions(Node):
         with open('../data.yaml', 'r') as f:
             self.DATA = yaml.safe_load(f)
 
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        config_path = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), 
-            "../third_party/GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py")
-        weights_path = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), 
-            "../third_party/GroundingDINO", "weights", "groundingdino_swint_ogc.pth")
-        from zero_shot_object_detector import GroundingDINO
-        # self.object_detector_model = GroundingDINO(
-        #     box_threshold=self.DATA['DINO']['box_threshold'],
-        #     text_threshold=self.DATA['DINO']['text_threshold'], 
-        #     device=self.device, 
-        #     config_path=config_path, 
-        #     weights_path=weights_path) # TODO uncomment me
-        self.object_detector_model = None  # TODO: remove me after uncommenting above
+        # Create GSAM2 service client
+        self.gsam2_client = self.create_client(GroundedSAM2Srv, 'gsam2/infer')
+        self.get_logger().info("Waiting for GSAM2 service...")
+        while not self.gsam2_client.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('GSAM2 service not available, waiting...')
 
         self.latest_image_msg = None
         self.current_image_num = 0
@@ -229,20 +220,65 @@ class RobotActions(Node):
             goal_handle.succeed()
             return answer
 
-        img1 = self.bridge.imgmsg_to_cv2(self.latest_image_msg, desired_encoding='rgb8')
-        boxes, logits, phrases, annotated_frame = self.object_detector_model.predict_from_image(img1, obj)
+        # Convert image to BGR for GSAM2
+        img_bgr = self.bridge.imgmsg_to_cv2(self.latest_image_msg, desired_encoding='bgr8')
+        
+        # Create GSAM2 service request
+        request = GroundedSAM2Srv.Request()
+        request.image = self.bridge.cv2_to_imgmsg(img_bgr, encoding='bgr8')
+        request.text_prompt = obj if obj.endswith('.') else obj + '.'
+        request.box_threshold = self.DATA['DINO']['box_threshold'] if 'DINO' in self.DATA else 0.35
+        request.text_threshold = self.DATA['DINO']['text_threshold'] if 'DINO' in self.DATA else 0.45
+        request.multimask_output = False
+        
+        # Call GSAM2 service
+        future = self.gsam2_client.call_async(request)
+        
+        # Wait for the future without spinning (we're already in a callback)
+        timeout = 30.0
+        start_time = time.time()
+        while not future.done() and (time.time() - start_time) < timeout:
+            time.sleep(0.01)
+        
+        if not future.done() or future.result() is None:
+            print(f"GSAM2 service call failed or timed out!")
+            answer.result = False
+            goal_handle.succeed()
+            return answer
+        
+        response = future.result()
+        num_detections = int(response.n)
 
-        image_dir = os.path.join("..", "images")
-        if not os.path.exists(image_dir):
-            os.makedirs(image_dir)
+        # Save image
+        print(type(img_bgr))
+        img_pil = Img.fromarray(cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB))
+        img_pil.save(f'/home/ros/cobot_ws/images/{obj}_num_detections_{response.n}__time_{time.time()}.png')
 
-        ann_image = Img.fromarray(np.array(annotated_frame).astype(np.uint8))
-        ann_image.save(os.path.join(image_dir, f"annotated_frame_{self.current_image_num}.png"))
-        self.current_image_num += 1
-        num_boxes = len(boxes)
-        answer.result = (num_boxes > 0)
+        # # Save annotated image if detections found
+        # if num_detections > 0:
+        #     image_dir = os.path.join("..", "images")
+        #     if not os.path.exists(image_dir):
+        #         os.makedirs(image_dir)
+            
+        #     # Draw bounding boxes on the image
+        #     annotated_frame = img_bgr.copy()
+        #     for i in range(num_detections):
+        #         x1, y1 = int(response.x_min[i]), int(response.y_min[i])
+        #         x2, y2 = int(response.x_max[i]), int(response.y_max[i])
+        #         label = response.label[i] if i < len(response.label) else obj
+        #         score = response.score[i] if i < len(response.score) else 0.0
+                
+        #         cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+        #         cv2.putText(annotated_frame, f"{label}: {score:.2f}", 
+        #                    (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+            
+        #     ann_image = Img.fromarray(cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB))
+        #     ann_image.save(os.path.join(image_dir, f"annotated_frame_{self.current_image_num}.png"))
+        #     self.current_image_num += 1
+        
+        answer.result = (num_detections > 0)
         goal_handle.succeed()
-        print(f"Detected {num_boxes} boxes")
+        print(f"Detected {num_detections} instances of '{obj}'")
         return answer
 
     def say_callback(self, goal_handle):
@@ -321,7 +357,7 @@ class RobotActions(Node):
         return result
 
     def pick_callback(self, goal_handle):
-        print(f"Recieved a pick request!!")
+        print(f"Recieved a pick request:")
         goal = goal_handle.request
         result = Pick.Result()
         
