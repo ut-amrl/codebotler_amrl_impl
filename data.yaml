@@ -3,8 +3,8 @@ ROBOT_SAY_TOPIC: "/robot_say"
 ROBOT_ASK_TOPIC: "/robot_ask"
 HUMAN_RESPONSE_TOPIC: "/human_response"
 DINO:
-box_threshold: 0.45
-text_threshold: 0.35
+  box_threshold: 0.45
+  text_threshold: 0.35
 MAP: "ahg2apt"
 PICK_STATUS_TOPIC: "/pick_goal_status"
 NAV_STATUS_TOPIC: "/basenav_t/navigation_goal_status"
