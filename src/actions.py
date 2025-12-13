@@ -43,6 +43,7 @@ class RobotActions(Node):
         if os.path.exists(os.path.join("..", "images")):
             shutil.rmtree(os.path.join("..", "images"))
         self.pick_status = False
+        self.place_status = False
         self.nav_status = None
         self.new_loc_counter = 0
         self.cur_coords = (None, None, None)  # (x, y, theta)
@@ -62,11 +63,13 @@ class RobotActions(Node):
         self.robot_say_pub = self.create_publisher(String, self.DATA['ROBOT_SAY_TOPIC'], 1)
         self.robot_ask_pub = self.create_publisher(String, self.DATA['ROBOT_ASK_TOPIC'], 1)
         self.pick_request_pub = self.create_publisher(String, "/pick_request", 10)
+        self.place_request_pub = self.create_publisher(String, "/place_request", 10)
 
         # Subscribers
         self.localization_sub = self.create_subscription(Localization2DMsg, self.DATA['LOCALIZATION_TOPIC'], self.localization_callback, 1)
         self.nav_status_sub = self.create_subscription(NavStatusMsg, self.DATA['NAV_STATUS_TOPIC'], self.nav_status_callback, 1)
         self.pick_status_sub = self.create_subscription(Bool, "/pick_goal_status", self.pick_status_callback, 5)
+        self.place_status_sub = self.create_subscription(Bool, "/place_goal_status", self.place_status_callback, 5)
         self.image_sub = self.create_subscription(Image, self.DATA['CAM_IMG_TOPIC'], self.image_callback, 5)
         self.bridge = CvBridge()
         self.get_logger().info("======= Started all robot action servers =======")
@@ -74,6 +77,10 @@ class RobotActions(Node):
     def pick_status_callback(self, msg):
         # True = done, False = not done
         self.pick_status = msg.data
+
+    def place_status_callback(self, msg):
+        # True = done, False = not done
+        self.place_status = msg.data
 
     def nav_status_callback(self, msg):
         self.nav_status = msg.status
@@ -379,10 +386,22 @@ class RobotActions(Node):
         return result
 
     def place_callback(self, goal_handle):
-        # TODO: take care of transitioning this part properly yourselves
-        # Implement place functionality
+        print(f"Received a place request")
+        goal = goal_handle.request
         result = Place.Result()
+        
+        # Reset status and publish the place request
+        self.place_status = False
+        place_msg = String()
+        place_msg.data = "place"  # Simple trigger message
+        self.place_request_pub.publish(place_msg)
+        
+        # Wait for place to complete
+        while self.place_status == False:
+            time.sleep(0.05)
+
         goal_handle.succeed()
+        self.place_status = False  # reset the status here
         return result
 
 
