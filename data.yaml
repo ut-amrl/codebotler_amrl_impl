@@ -10,7 +10,7 @@ PICK_STATUS_TOPIC: "/pick_goal_status"
 NAV_STATUS_TOPIC: "/basenav_t/navigation_goal_status"
 NAV_GOAL_TOPIC: "/basenav_t/move_base_simple/goal_amrl"
 CAM_IMG_TOPIC: "/rgb/image_raw"
-LOCALIZATION_TOPIC: "/localization"
+LOCALIZATION_TOPIC: "/basenav_t/localization"
 DIST_THRESHOLD: 1.25
 SLEEP_AFTER_SAY: 0.24
 SLEEP_AFTER_ASK: 0.1
