@@ -56,15 +56,20 @@ LOCATIONS:
     kitchen_island: []
 
   ahg2apt:
-    # table: [9.63, 57.87, -3.06]
-    # kitchen sink: [3.47, -0.04, 1.57]
-    living room: [3.35,  -12.2, 0.0]
+    kitchen sink: [6.40, -10.88, 1.70]
+    microwave: [7.52, -10.182, 1.58]
+    kitchen shelf: [9.78, -10.81, 1.66]
+    living room: [7.18,  -22.6, 0.0]
+    # living room: [3.35,  -12.2, 0.0]
     # living room table: [3.35,  -12.2, 0.0]
-    snack table: [6.65, -6.38, -1.57]
-    tv: [2.4, -12.05, -3.14]
+    # snack table: [6.65, -6.38, -1.57]
+    snack table: [10.30, -16.55, -1.57]
+    study desk: [9.85, -13.44, 0.15]
+    # tv: [2.5, -12.15, -3.14]
     #tv room: [2.3, -12.05, -3.14]
     #tv area: [2.3, -12.05, -3.14]
-    dining table:  [4.12, -4.9, 1.57]
+    # dining table:  [4.12, -4.9, 1.57]
+    dining table:  [7.35, -15.54, 1.57]
 
   ahg_amrl:
     tv room: [12, 72, 0]

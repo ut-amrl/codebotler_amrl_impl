@@ -44,6 +44,7 @@ class RobotActions(Node):
             shutil.rmtree(os.path.join("..", "images"))
         self.pick_status = False
         self.place_status = False
+        self.is_in_room_status = False
         self.nav_status = None
         self.new_loc_counter = 0
         self.cur_coords = (None, None, None)  # (x, y, theta)
@@ -64,12 +65,14 @@ class RobotActions(Node):
         self.robot_ask_pub = self.create_publisher(String, self.DATA['ROBOT_ASK_TOPIC'], 1)
         self.pick_request_pub = self.create_publisher(String, "/pick_request", 10)
         self.place_request_pub = self.create_publisher(String, "/place_request", 10)
+        self.is_in_room_pub = self.create_publisher(String, "/is_in_room_request", 10)
 
         # Subscribers
         self.localization_sub = self.create_subscription(Localization2DMsg, self.DATA['LOCALIZATION_TOPIC'], self.localization_callback, 1)
         self.nav_status_sub = self.create_subscription(NavStatusMsg, self.DATA['NAV_STATUS_TOPIC'], self.nav_status_callback, 1)
         self.pick_status_sub = self.create_subscription(Bool, "/pick_goal_status", self.pick_status_callback, 5)
         self.place_status_sub = self.create_subscription(Bool, "/place_goal_status", self.place_status_callback, 5)
+        self.is_in_room_status_sub = self.create_subscription(Bool, "/is_in_room_status", self.is_in_room_status_callback, 5)
         self.image_sub = self.create_subscription(Image, self.DATA['CAM_IMG_TOPIC'], self.image_callback, 5)
         self.bridge = CvBridge()
         self.get_logger().info("======= Started all robot action servers =======")
@@ -81,6 +84,10 @@ class RobotActions(Node):
     def place_status_callback(self, msg):
         # True = done, False = not done
         self.place_status = msg.data
+
+    def is_in_room_status_callback(self, msg):
+        # True = done, False = not done
+        self.is_in_room_status = msg.data
 
     def nav_status_callback(self, msg):
         self.nav_status = msg.status
@@ -216,77 +223,73 @@ class RobotActions(Node):
         goal_handle.succeed()
         return result
 
+    # def is_in_room_callback(self, goal_handle):
+    #     goal = goal_handle.request
+    #     obj = goal.object
+    #     print(f"Recieved is_in_room request for {obj}")
+    #     answer = IsInRoom.Result()
+    #     if self.latest_image_msg is None:
+    #         print(f"No image available from camera!")
+    #         answer.result = False
+    #         goal_handle.succeed()
+    #         return answer
+
+    #     # Convert image to BGR for GSAM2
+    #     img_bgr = self.bridge.imgmsg_to_cv2(self.latest_image_msg, desired_encoding='bgr8')
+        
+    #     # Create GSAM2 service request
+    #     request = GroundedSAM2Srv.Request()
+    #     request.image = self.bridge.cv2_to_imgmsg(img_bgr, encoding='bgr8')
+    #     request.text_prompt = obj if obj.endswith('.') else obj + '.'
+    #     request.box_threshold = self.DATA['DINO']['box_threshold'] if 'DINO' in self.DATA else 0.35
+    #     request.text_threshold = self.DATA['DINO']['text_threshold'] if 'DINO' in self.DATA else 0.45
+    #     request.multimask_output = False
+        
+    #     # Call GSAM2 service
+    #     future = self.gsam2_client.call_async(request)
+        
+    #     # Wait for the future without spinning (we're already in a callback)
+    #     timeout = 30.0
+    #     start_time = time.time()
+    #     while not future.done() and (time.time() - start_time) < timeout:
+    #         time.sleep(0.01)
+        
+    #     if not future.done() or future.result() is None:
+    #         print(f"GSAM2 service call failed or timed out!")
+    #         answer.result = False
+    #         goal_handle.succeed()
+    #         return answer
+        
+    #     response = future.result()
+    #     num_detections = int(response.n)
+
+    #     answer.result = (num_detections > 0)
+    #     goal_handle.succeed()
+    #     print(f"Detected {num_detections} instances of '{obj}'")
+    #     return answer
+
     def is_in_room_callback(self, goal_handle):
+        print(f"Received is_in_room request for {goal_handle.request.object}")
         goal = goal_handle.request
-        obj = goal.object
-        print(f"Recieved is_in_room request for {obj}")
-        answer = IsInRoom.Result()
-        if self.latest_image_msg is None:
-            print(f"No image available from camera!")
-            answer.result = False
-            goal_handle.succeed()
-            return answer
+        result = IsInRoom.Result()
+        
+        # Extract object name from the goal
+        object_name = goal.object if hasattr(goal, 'object') else str(goal)
+        
+        # Reset status and publish the is_in_room request
+        self.is_in_room_status = False
+        is_in_room_msg = String()
+        is_in_room_msg.data = object_name
+        self.is_in_room_pub.publish(is_in_room_msg)
+        
+        # Wait for is_in_room to complete
+        while self.is_in_room_status == False:
+            time.sleep(0.05)
 
-        # Convert image to BGR for GSAM2
-        img_bgr = self.bridge.imgmsg_to_cv2(self.latest_image_msg, desired_encoding='bgr8')
-        
-        # Create GSAM2 service request
-        request = GroundedSAM2Srv.Request()
-        request.image = self.bridge.cv2_to_imgmsg(img_bgr, encoding='bgr8')
-        request.text_prompt = obj if obj.endswith('.') else obj + '.'
-        request.box_threshold = self.DATA['DINO']['box_threshold'] if 'DINO' in self.DATA else 0.35
-        request.text_threshold = self.DATA['DINO']['text_threshold'] if 'DINO' in self.DATA else 0.45
-        request.multimask_output = False
-        
-        # Call GSAM2 service
-        future = self.gsam2_client.call_async(request)
-        
-        # Wait for the future without spinning (we're already in a callback)
-        timeout = 30.0
-        start_time = time.time()
-        while not future.done() and (time.time() - start_time) < timeout:
-            time.sleep(0.01)
-        
-        if not future.done() or future.result() is None:
-            print(f"GSAM2 service call failed or timed out!")
-            answer.result = False
-            goal_handle.succeed()
-            return answer
-        
-        response = future.result()
-        num_detections = int(response.n)
-
-        # Save image
-        #print(type(img_bgr))
-        #img_pil = Img.fromarray(cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB))
-        #img_pil.save(f'/home/ros/cobot_ws/images/{obj}_num_detections_{response.n}__time_{time.time()}.png')
-
-        # # Save annotated image if detections found
-        # if num_detections > 0:
-        #     image_dir = os.path.join("..", "images")
-        #     if not os.path.exists(image_dir):
-        #         os.makedirs(image_dir)
-            
-        #     # Draw bounding boxes on the image
-        #     annotated_frame = img_bgr.copy()
-        #     for i in range(num_detections):
-        #         x1, y1 = int(response.x_min[i]), int(response.y_min[i])
-        #         x2, y2 = int(response.x_max[i]), int(response.y_max[i])
-        #         label = response.label[i] if i < len(response.label) else obj
-        #         score = response.score[i] if i < len(response.score) else 0.0
-                
-        #         cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-        #         cv2.putText(annotated_frame, f"{label}: {score:.2f}", 
-        #                    (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-            
-        #     ann_image = Img.fromarray(cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB))
-        #     ann_image.save(os.path.join(image_dir, f"annotated_frame_{self.current_image_num}.png"))
-        #     self.current_image_num += 1
-        
-        answer.result = (num_detections > 0)
+        result.result = self.is_in_room_status
         goal_handle.succeed()
-        print(f"Detected {num_detections} instances of '{obj}'")
-        return answer
+        self.is_in_room_status = False  # reset the status here
+        return result
 
     def say_callback(self, goal_handle):
         goal = goal_handle.request
@@ -369,7 +372,7 @@ class RobotActions(Node):
         result = Pick.Result()
         
         # Extract object name from the goal
-        object_name = goal.object if hasattr(goal, 'object') else str(goal)
+        object_name = goal.obj if hasattr(goal, 'obj') else str(goal)
         
         # Reset status and publish the pick request
         self.pick_status = False
