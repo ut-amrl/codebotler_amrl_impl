@@ -1,9 +1,7 @@
-# ROS2 topic names (already following ROS2 conventions with forward slashes)
 ROBOT_SAY_TOPIC: "/robot_say"
 ROBOT_ASK_TOPIC: "/robot_ask"
 HUMAN_RESPONSE_TOPIC: "/human_response"
-MAP: "ahg2apt"
-PICK_STATUS_TOPIC: "/pick_goal_status"
+MAP: "labapt"
 NAV_STATUS_TOPIC: "/basenav_t/navigation_goal_status"
 NAV_GOAL_TOPIC: "/basenav_t/move_base_simple/goal_amrl"
 CAM_IMG_TOPIC: "/rgb/image_raw"
@@ -17,43 +15,7 @@ ASK_TIMEOUT_S: 120.0
 ###### Format: all letters lower case, no 's or _ or - etc
 # ------------------------------------------------------------
 LOCATIONS:
-  ahg1:
-    wood shop: [34.90, 77.86, 0.98]
-    elevator: [18.27, 78.91, -2.41]
-    research lab: [19.46, 70.14, 1.79]
-    demo area: [39.34, 76.16, 1.589]
-    front door: [44.72, 74.8, -1.26]
-    # fine art studio rocking chair area: [69.08, 63.96, -3.09]
-    # fine art studio high table area: [70.97, 58.60, -2.83]
-    # fine art studio couch area: [68.05, 47.92, -2.59]
-    # fine art studio lockers area: [67.82, 44.79, -1.77]
-  ahg2:
-    # sadanand office: [61.50, 30.57, 3.07]
-    # sri office: [61.85, 37.94, -3.12]
-    # zichao office: [61.50, 52.51, 3.06]
-    # luisa office: [61.50, 52.51, 3.06]
-    # jaci office: [61.76, 54.05, 3.11]
-    # zarko office: [33.48, 64.39, -1.57]
-    # lounge: [46.95, 66.14, 1.61]
-    # main entrance: [41.36, 65.20, 2.20]
-    # conference room: [46.70, 64.73, -1.54]
-    # elevator: [12.68, 65.36, -2.52]
-    desk: [5.65, 4.14, -0.073]
-    television room: [-0.108, 5.37, 1.889]
-    tv room: [-0.108, 5.37, 1.889]
-    t v room: [-0.108, 5.37, 1.889]
-    tv: [-0.108, 5.37, 1.889]
-    workstation: [5.26, 1.01, -0.07]
-    work station: [5.26, 1.01, -0.07]
-
-    ##################
-    # MOCK APARTMENT #
-    ##################
-    kitchen_counter: [-5.24, -5.71, 2.17]
-    two_chair_table: []
-    kitchen_island: []
-
-  ahg2apt:
+  labapt:
     kitchen sink: [6.40, -10.88, 1.70]
     microwave: [7.52, -10.182, 1.58]
     kitchen shelf: [9.78, -10.81, 1.66]
@@ -68,30 +30,3 @@ LOCATIONS:
     #tv area: [2.3, -12.05, -3.14]
     # dining table:  [4.12, -4.9, 1.57]
     dining table:  [7.35, -15.54, 1.57]
-
-  ahg_amrl:
-    tv room: [12, 72, 0]
-    elevator: [12, 69, -0.7]
-    kitchen: [5.7, 71.5, 3.14]
-    main conference room: [9, 69.4, -1.6]
-    small conference room: [4.5, 74, 3.14]
-    zichao office: [4.5, 69, 0]
-    haresh office: [11.2, 73.3, 0]
-    sadanand office: [12.5, 73.5, 1.5]
-  gdc3:
-    # kitchen: [17.7, 14.58, 2.5]
-    front door: [-5.67, 15.36, -2.58]
-    conference room: [17.47, 14.03, -1.02]
-    soccer lab: [33.37, 13.26, 0.69]
-    joydeep office: [14.89, 14.85, -1.576]
-    peter office: [6.94, 14.4, -1.59]
-    roberto office: [8.24, 14.35, -1.69]
-    # north lab area: [20.39, 21.66, 0.67]
-  gdc2:
-    elevator: [-11.4, 7.47, -2.45]
-    restroom: [-17.65, 11.22, 0]
-    dante classroom: [-17.61, 16.12, -0.61]
-    lucky lab: [-8.79, -15.5, -1.46]
-    front door: [-26.36, -8.27, 3.06]
-    outside: [-34.44, -7.06, -3.08]
-    stairs: [-20.32, -2.21, 2.69]

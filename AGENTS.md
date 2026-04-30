@@ -16,12 +16,12 @@ This ROS 2 package is the AMRL Jackal implementation of CodeBotler's robot actio
 ## Key Files
 - `data.yaml`: source of topic names, thresholds, map selection, distance threshold, speech timing, and named locations.
 - `CMakeLists.txt`/`package.xml`: install Python executables and `data.yaml`; depend on `amrl_msgs` and `cobot_codebotler_actions`.
-- `pick_client.py`: retained ad hoc pick action client.
+- `test_pick_client.py`: retained ad hoc pick action test client.
 
 ## Run And Verify
 - From the workspace root, build this package with `colcon build --packages-select codebotler_amrl_impl --symlink-install`, then source `install/setup.bash`.
 - Launch through `tmux/codebotler`, or run `python3 actions.py` and `python3 gui.py` from this package after the AMRL/ut_jackal stack, camera, navigation topics, `cobot_codebotler_actions`, pick/place status topics, OpenAI credentials, and audio devices are available.
-- Syntax check inside the root workspace container: `./container cmd --name cobot_demo 'conda run --no-capture-output -n codebotler python3 -m py_compile src/codebotler_amrl_impl/actions.py src/codebotler_amrl_impl/gui.py src/codebotler_amrl_impl/pick_client.py'`.
+- Syntax check inside the root workspace container: `./container cmd --name cobot_demo 'conda run --no-capture-output -n codebotler python3 -m py_compile src/codebotler_amrl_impl/actions.py src/codebotler_amrl_impl/gui.py src/codebotler_amrl_impl/test_pick_client.py'`.
 - There is no formal test suite. Full validation needs the ROS 2 graph, AMRL messages, action definitions, camera image topic, navigation status/localization topics, pick/place status topics, OpenAI credentials, and audio devices.
 
 ## Change Guidance

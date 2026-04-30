@@ -61,7 +61,7 @@ find_package(cobot_codebotler_actions REQUIRED)
 install(PROGRAMS
   actions.py
   gui.py
-  pick_client.py
+  test_pick_client.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
