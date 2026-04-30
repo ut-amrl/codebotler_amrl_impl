@@ -7,10 +7,6 @@ from cobot_codebotler_actions.action import (
 )
 
 
-class RobotExecutionInterrupted(Exception):
-    pass
-
-
 class RobotInterface(Node):
     def __init__(self):
         super().__init__('pick_test_client')
@@ -23,21 +19,23 @@ class RobotInterface(Node):
         
         print("======= Connected to robot action servers =======")
     def _handle_client(self, client, goal, action_name):
-        goal_handle = client.send_goal_async(goal)
-        rclpy.spin_until_future_complete(self, goal_handle)
+        goal_handle_future = client.send_goal_async(goal)
+        rclpy.spin_until_future_complete(self, goal_handle_future)
         
-        goal_handle = goal_handle.result()
+        goal_handle = goal_handle_future.result()
+        if goal_handle is None:
+            raise RuntimeError(f"{action_name}() did not receive a goal response!")
         if not goal_handle.accepted:
-            raise Exception(f"{action_name}() goal was rejected!")
+            raise RuntimeError(f"{action_name}() goal was rejected!")
         
         result_future = goal_handle.get_result_async()
         rclpy.spin_until_future_complete(self, result_future)
         
         result = result_future.result()
-        if result.status == GoalStatus.STATUS_CANCELED:
-            raise RobotExecutionInterrupted(f"{action_name}()")
-        elif result.status != GoalStatus.STATUS_SUCCEEDED:
-            raise Exception(f"{action_name}() failed with status {result.status}")
+        if result is None:
+            raise RuntimeError(f"{action_name}() did not receive a result!")
+        if result.status != GoalStatus.STATUS_SUCCEEDED:
+            raise RuntimeError(f"{action_name}() failed with status {result.status}")
         
         return result.result
 
@@ -49,8 +47,8 @@ class RobotInterface(Node):
 def main(args=None):
     rclpy.init(args=args)
     r = RobotInterface()
-    result = r.pick("soda can")
-    print(f"Pick result: success={result.success}, message={result.message}")
+    r.pick("soda can")
+    print("Pick action succeeded")
     r.destroy_node()
     rclpy.shutdown()
 

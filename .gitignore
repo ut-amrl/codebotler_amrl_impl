@@ -3,6 +3,7 @@
 **/images/
 **/__pycache__/
 **/.vscode/
+.openai_api_key
 **/.openai_api_key
 
 build/

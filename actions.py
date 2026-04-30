@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import argparse
 import base64
 import json
 import os
@@ -68,40 +69,19 @@ def speak(instruction: str):
 
 
 def load_openai_api_key() -> str:
+    key_path = Path(__file__).resolve().parent / ".openai_api_key"
+    if key_path.exists():
+        key = key_path.read_text().strip()
+        if key:
+            return key
+
     env_key = os.getenv("OPENAI_API_KEY", "").strip()
     if env_key:
         return env_key
 
-    candidates = []
-    seen = set()
-
-    def add_candidate(path: Path):
-        resolved = path.expanduser()
-        if resolved not in seen:
-            candidates.append(resolved)
-            seen.add(resolved)
-
-    search_roots = []
-    for path in (Path(__file__).resolve(), Path.cwd().resolve()):
-        root = path if path.is_dir() else path.parent
-        search_roots.append(root)
-        search_roots.extend(root.parents)
-
-    for root in search_roots:
-        for codebotler_dir in (root / "codebotler", root / "src" / "codebotler"):
-            add_candidate(codebotler_dir / ".openai_api_key")
-            add_candidate(codebotler_dir / ".openai")
-        add_candidate(root / ".openai_api_key")
-        add_candidate(root / ".openai")
-
-    for path in candidates:
-        if path.is_file():
-            key = path.read_text().strip()
-            if key:
-                return key
-
     raise RuntimeError(
-        "OpenAI API key not found in OPENAI_API_KEY, src/codebotler/.openai_api_key, or src/codebotler/.openai"
+        "OpenAI API key not found. Create '.openai_api_key' in the "
+        "codebotler_amrl_impl repo or set OPENAI_API_KEY."
     )
 
 
@@ -293,7 +273,7 @@ class GoToActionServer(BaseActionServer):
                 "I don't know the location of the " + str(goal.location) + ". Aborting this mission.",
             )
             time.sleep(self.data["SLEEP_AFTER_SAY"] * 6 * 2)
-            goal_handle.succeed()
+            goal_handle.abort()
             return result
 
         publish_robot_say(self.ctx, "I am going to the " + str(goal.location))
@@ -317,10 +297,6 @@ class GoToActionServer(BaseActionServer):
 
         wait_start = time.time()
         while self.ctx.nav_status is None:
-            if goal_handle.is_cancel_requested:
-                goal_handle.canceled()
-                self.stop_robot()
-                return result
             if time.time() - wait_start > 2.0:
                 break
             time.sleep(0.05)
@@ -330,11 +306,6 @@ class GoToActionServer(BaseActionServer):
         resend_count = 0
 
         while time.time() < nav_deadline:
-            if goal_handle.is_cancel_requested:
-                goal_handle.canceled()
-                self.stop_robot()
-                return result
-
             status = self.ctx.nav_status
             if status in [1, 2, 3]:
                 motion_started = True
@@ -392,9 +363,9 @@ class IsInRoomActionServer(BaseActionServer):
     action_type = IsInRoom
     server_name = "/is_in_room_server"
 
-    def __init__(self, node: Node, ctx: RobotContext):
+    def __init__(self, node: Node, ctx: RobotContext, vlm_model: str):
         self.openai_client = None
-        self.openai_vlm_model = os.getenv("COBOT_OPENAI_VLM_MODEL", "gpt-4o-mini")
+        self.openai_vlm_model = vlm_model
         super().__init__(node, ctx)
 
     def get_openai_client(self):
@@ -490,7 +461,7 @@ class IsInRoomActionServer(BaseActionServer):
         if self.ctx.latest_image_msg is None:
             print("No image available from camera!")
             answer.result = False
-            goal_handle.succeed()
+            goal_handle.abort()
             return answer
 
         try:
@@ -498,7 +469,7 @@ class IsInRoomActionServer(BaseActionServer):
         except Exception as e:
             self.logger.error(f"OpenAI VLM is_in_room failed: {e}")
             answer.result = False
-            goal_handle.succeed()
+            goal_handle.abort()
             return answer
 
         answer.result = present
@@ -596,8 +567,6 @@ class PickActionServer(BaseActionServer):
             result_attr="pick_result",
         )
 
-        result.success = success
-        result.message = message
         if success:
             goal_handle.succeed()
         else:
@@ -634,13 +603,13 @@ class PlaceActionServer(BaseActionServer):
 
 
 class RobotActions(Node):
-    def __init__(self):
+    def __init__(self, vlm_model: str):
         super().__init__("robot_low_level_actions")
         self.ctx = RobotContext(self)
         self.action_servers = [
             GoToActionServer(self, self.ctx),
             GetCurrentLocationActionServer(self, self.ctx),
-            IsInRoomActionServer(self, self.ctx),
+            IsInRoomActionServer(self, self.ctx, vlm_model),
             SayActionServer(self, self.ctx),
             GetAllRoomsActionServer(self, self.ctx),
             AskActionServer(self, self.ctx),
@@ -651,9 +620,13 @@ class RobotActions(Node):
 
 
 def main(args=None):
-    rclpy.init(args=args)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--vlm-model", default="gpt-5-mini", help="OpenAI vision model for is_in_room")
+    parsed_args, ros_args = parser.parse_known_args(args)
 
-    robot_actions = RobotActions()
+    rclpy.init(args=ros_args)
+
+    robot_actions = RobotActions(vlm_model=parsed_args.vlm_model)
 
     def signal_handler(sig, frame):
         print("Ctrl+C detected! Killing server...")

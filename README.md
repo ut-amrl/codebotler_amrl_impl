@@ -13,6 +13,7 @@ conda run --no-capture-output -n codebotler python3 gui.py
 ```
 
 `actions.py` exposes the CodeBotler action contract: go to, get current location, get all rooms, object presence, say, ask, pick, and place.
+Use `python3 actions.py --vlm-model <model>` to override the OpenAI vision model for `is_in_room`; the default is `gpt-5-mini`.
 
 `gui.py` displays ask prompts, speaks ask questions through `espeak`/`aplay`, and publishes the selected answer back to `actions.py`.
 
@@ -25,7 +26,7 @@ The ROS 2 workspace must provide:
 - the AMRL navigation/localization topics configured in `data.yaml`
 - camera image topic for OpenAI VLM object checks
 - pick/place request and status topics
-- OpenAI credentials for `is_in_room`
+- OpenAI credentials for `is_in_room`: create `.openai_api_key` in this repo root, or set `OPENAI_API_KEY`
 
 Install Python dependencies with:
 
