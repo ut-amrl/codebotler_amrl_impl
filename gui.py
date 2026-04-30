@@ -2,6 +2,7 @@
 
 import json
 import subprocess
+from pathlib import Path
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
@@ -34,7 +35,7 @@ def listen_for_yes_or_no():
 class MyGUI(Node):
     def __init__(self, master):
         super().__init__('gui_interface')
-        with open('../data.yaml', 'r') as f:
+        with open(Path(__file__).resolve().parent / 'data.yaml', 'r') as f:
             self.DATA = yaml.safe_load(f)
         self.master = master
         master.title("My GUI")

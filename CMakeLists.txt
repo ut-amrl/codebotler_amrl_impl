@@ -59,8 +59,9 @@ find_package(cobot_codebotler_actions REQUIRED)
 
 ## Install Python scripts
 install(PROGRAMS
-  src/actions.py
-  src/gui.py
+  actions.py
+  gui.py
+  pick_client.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

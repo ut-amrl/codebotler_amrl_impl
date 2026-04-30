@@ -7,7 +7,7 @@ ROS 2 action-server implementation for the CodeBotler deployment on the AMRL Jac
 The `tmux/codebotler` profile launches this package directly:
 
 ```bash
-cd ~/cobot_demo/src/codebotler_amrl_impl/src
+cd ~/cobot_demo/src/codebotler_amrl_impl
 conda run --no-capture-output -n codebotler python3 actions.py
 conda run --no-capture-output -n codebotler python3 gui.py
 ```

@@ -30,7 +30,7 @@ class RobotActions(Node):
     def __init__(self):
         super().__init__('robot_low_level_actions')
         self.callback_group = ReentrantCallbackGroup()
-        with open('../data.yaml', 'r') as f:
+        with open(Path(__file__).resolve().parent / 'data.yaml', 'r') as f:
             self.DATA = yaml.safe_load(f)
 
         self.latest_image_msg = None
