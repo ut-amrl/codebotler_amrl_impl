@@ -11,9 +11,7 @@ find_package(ament_cmake_python REQUIRED)
 find_package(rclpy REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
-find_package(geometry_msgs REQUIRED)
-find_package(action_msgs REQUIRED)
-find_package(builtin_interfaces REQUIRED)
+find_package(cv_bridge REQUIRED)
 
 # External dependencies
 find_package(amrl_msgs REQUIRED)
@@ -63,14 +61,7 @@ find_package(cobot_codebotler_actions REQUIRED)
 install(PROGRAMS
   src/actions.py
   src/gui.py
-  src/zero_shot_object_detector.py
   DESTINATION lib/${PROJECT_NAME}
-)
-
-## Install launch files
-install(DIRECTORY
-  launch
-  DESTINATION share/${PROJECT_NAME}/
 )
 
 ## Install data files

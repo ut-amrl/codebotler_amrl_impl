@@ -2,9 +2,6 @@
 ROBOT_SAY_TOPIC: "/robot_say"
 ROBOT_ASK_TOPIC: "/robot_ask"
 HUMAN_RESPONSE_TOPIC: "/human_response"
-DINO:
-  box_threshold: 0.45
-  text_threshold: 0.35
 MAP: "ahg2apt"
 PICK_STATUS_TOPIC: "/pick_goal_status"
 NAV_STATUS_TOPIC: "/basenav_t/navigation_goal_status"
@@ -14,6 +11,7 @@ LOCALIZATION_TOPIC: "/basenav_t/localization"
 DIST_THRESHOLD: 1.25
 SLEEP_AFTER_SAY: 0.24
 SLEEP_AFTER_ASK: 0.1
+ASK_TIMEOUT_S: 120.0
 
 # ------------------------------------------------------------
 ###### Format: all letters lower case, no 's or _ or - etc

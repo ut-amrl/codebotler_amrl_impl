@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 
-import os
-import sys
+import json
+import subprocess
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
 import tkinter as tk
-from gtts import gTTS
 import speech_recognition as sr
 import yaml
 import threading
@@ -53,21 +52,23 @@ class MyGUI(Node):
         self.options = []  # hardcode
         self.button_list = []
 
-    def update_label(self, text):
+    def speak(self, text):
+        espeak = subprocess.Popen(
+            ["/usr/bin/espeak", "--stdout", "-s", "105", "-p", "75", text],
+            stdout=subprocess.PIPE,
+        )
+        aplay = subprocess.Popen(
+            ["/usr/bin/aplay", "-D", "sysdefault:CARD=P20"],
+            stdin=espeak.stdout,
+        )
+        espeak.wait()
+        aplay.wait()
+
+    def update_label(self, text, speak=False):
         self.label.config(text=f"{text}", font=("Helvetica", 80),
                           wraplength=int(self.master.winfo_screenwidth() * 0.8), justify="center")
-        tts = gTTS(text=text, lang='en')
-        current_path = os.path.abspath(__file__)
-
-        if not os.path.exists(os.path.join(os.path.dirname(current_path), 'audio')):
-            os.makedirs(os.path.join(os.path.dirname(current_path), 'audio'))
-        file_path = os.path.join(os.path.dirname(current_path), 'audio', 'hello.mp3')
-
-        # Save the audio file
-        tts.save(file_path)
-
-        # Play the audio file
-        os.system('mpg321 {}'.format(file_path))
+        if speak:
+            threading.Thread(target=self.speak, args=[text], daemon=True).start()
 
     def message_cb(self, msg):
         print("message:", msg.data)
@@ -80,16 +81,29 @@ class MyGUI(Node):
         print("answered {}".format(option))
         for b in self.button_list:
             b.destroy()
-        self.button_frame.destroy()
-        self.human_response_pub.publish(option)
+        if self.button_frame is not None:
+            self.button_frame.destroy()
+            self.button_frame = None
+        self.human_response_pub.publish(String(data=option))
         self.label.config(text="Jackal :)", font=("Helvetica", 180))
         self.label.pack(anchor=tk.CENTER, expand=True)
 
     def ask_cb(self, msg):
-        msg = eval(msg.data)
-        question = msg[-1]
-        options = msg[:-1]
-        self.update_label(question)
+        try:
+            request = json.loads(msg.data)
+        except json.JSONDecodeError as e:
+            print(f"Could not parse ask request JSON: {e}")
+            return
+
+        question = request.get("question", "")
+        options = request.get("options", [])
+        if not isinstance(options, list):
+            options = []
+
+        self.update_label(question, speak=True)
+
+        if self.button_frame is not None:
+            self.button_frame.destroy()
 
         self.button_frame = tk.Frame(self.master)  # Create the frame here
         self.button_frame.pack(side=tk.BOTTOM, fill=tk.X)

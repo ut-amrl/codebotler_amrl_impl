@@ -2,13 +2,14 @@ import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionClient
 from rclpy.action.client import GoalStatus
-from typing import List
-import time
-import signal
-import sys
 from cobot_codebotler_actions.action import (
     Pick,
 )
+
+
+class RobotExecutionInterrupted(Exception):
+    pass
+
 
 class RobotInterface(Node):
     def __init__(self):
@@ -40,15 +41,17 @@ class RobotInterface(Node):
         
         return result.result
 
-    def pick(self, obj: str) -> bool:
+    def pick(self, obj: str):
         goal = Pick.Goal(obj=obj)
         print(f"Requesting pick of {obj}")
-        return self._handle_client(self.pick_client, goal, "pick").result
+        return self._handle_client(self.pick_client, goal, "pick")
 
 def main(args=None):
     rclpy.init(args=args)
     r = RobotInterface()
-    r.pick("soda can")
+    result = r.pick("soda can")
+    print(f"Pick result: success={result.success}, message={result.message}")
+    r.destroy_node()
     rclpy.shutdown()
 
 if __name__ == "__main__":

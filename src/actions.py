@@ -3,7 +3,10 @@
 import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionServer
+from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
+import base64
+import json
 import yaml
 from std_msgs.msg import String, Bool
 from sensor_msgs.msg import Image
@@ -11,54 +14,46 @@ from cv_bridge import CvBridge
 import cv2
 import numpy as np
 import time
-import torch
 import os
 import sys
-from PIL import Image as Img
-import shutil
+from pathlib import Path
 import signal
 import threading
 import subprocess
 
 # External message types
 from amrl_msgs.msg import NavStatusMsg, Localization2DMsg
-from amrl_msgs.srv import GroundedSAM2Srv
 from cobot_codebotler_actions.action import GoTo, GetCurrentLocation, IsInRoom, Say, GetAllRooms, Ask, Pick, Place
 
 
 class RobotActions(Node):
     def __init__(self):
         super().__init__('robot_low_level_actions')
+        self.callback_group = ReentrantCallbackGroup()
         with open('../data.yaml', 'r') as f:
             self.DATA = yaml.safe_load(f)
 
-        # Create GSAM2 service client
-        self.gsam2_client = self.create_client(GroundedSAM2Srv, 'gsam2/infer')
-        self.get_logger().info("Waiting for GSAM2 service...")
-        while not self.gsam2_client.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info('GSAM2 service not available, waiting...')
-
         self.latest_image_msg = None
-        self.current_image_num = 0
-        if os.path.exists(os.path.join("..", "images")):
-            shutil.rmtree(os.path.join("..", "images"))
-        self.pick_status = False
-        self.place_status = False
-        self.is_in_room_done = False
-        self.is_in_room_result = False
+        self.openai_client = None
+        self.openai_vlm_model = os.getenv("COBOT_OPENAI_VLM_MODEL", "gpt-4o-mini")
+        self.ask_response = None
+        self.ask_done_event = threading.Event()
+        self.pick_result = None
+        self.place_result = None
+        self.pick_done_event = threading.Event()
+        self.place_done_event = threading.Event()
         self.nav_status = None
-        self.new_loc_counter = 0
         self.cur_coords = (None, None, None)  # (x, y, theta)
 
         # Action servers
-        self.go_to_server = ActionServer(self, GoTo, "/go_to_server", self.go_to_callback)
-        self.get_current_location_server = ActionServer(self, GetCurrentLocation, "/get_current_location_server", self.get_current_location_callback)
-        self.is_in_room_server = ActionServer(self, IsInRoom, "/is_in_room_server", self.is_in_room_callback)
-        self.say_server = ActionServer(self, Say, "/say_server", self.say_callback)
-        self.get_all_rooms_server = ActionServer(self, GetAllRooms, "/get_all_rooms_server", self.get_all_rooms_callback)
-        self.ask_server = ActionServer(self, Ask, "/ask_server", self.ask_callback)
-        self.pick_server = ActionServer(self, Pick, "/pick_server", self.pick_callback)
-        self.place_server = ActionServer(self, Place, "/place_server", self.place_callback)
+        self.go_to_server = ActionServer(self, GoTo, "/go_to_server", self.go_to_callback, callback_group=self.callback_group)
+        self.get_current_location_server = ActionServer(self, GetCurrentLocation, "/get_current_location_server", self.get_current_location_callback, callback_group=self.callback_group)
+        self.is_in_room_server = ActionServer(self, IsInRoom, "/is_in_room_server", self.is_in_room_callback, callback_group=self.callback_group)
+        self.say_server = ActionServer(self, Say, "/say_server", self.say_callback, callback_group=self.callback_group)
+        self.get_all_rooms_server = ActionServer(self, GetAllRooms, "/get_all_rooms_server", self.get_all_rooms_callback, callback_group=self.callback_group)
+        self.ask_server = ActionServer(self, Ask, "/ask_server", self.ask_callback, callback_group=self.callback_group)
+        self.pick_server = ActionServer(self, Pick, "/pick_server", self.pick_callback, callback_group=self.callback_group)
+        self.place_server = ActionServer(self, Place, "/place_server", self.place_callback, callback_group=self.callback_group)
 
         # Publishers
         self.nav_goal_pub = self.create_publisher(Localization2DMsg, self.DATA['NAV_GOAL_TOPIC'], 1)
@@ -66,34 +61,28 @@ class RobotActions(Node):
         self.robot_ask_pub = self.create_publisher(String, self.DATA['ROBOT_ASK_TOPIC'], 1)
         self.pick_request_pub = self.create_publisher(String, "/pick_request", 10)
         self.place_request_pub = self.create_publisher(String, "/place_request", 10)
-        self.is_in_room_pub = self.create_publisher(String, "/is_in_room_request", 10)
 
         # Subscribers
-        self.localization_sub = self.create_subscription(Localization2DMsg, self.DATA['LOCALIZATION_TOPIC'], self.localization_callback, 1)
-        self.nav_status_sub = self.create_subscription(NavStatusMsg, self.DATA['NAV_STATUS_TOPIC'], self.nav_status_callback, 1)
-        self.pick_status_sub = self.create_subscription(Bool, "/pick_goal_status", self.pick_status_callback, 5)
-        self.place_status_sub = self.create_subscription(Bool, "/place_goal_status", self.place_status_callback, 5)
-        self.is_in_room_done_sub = self.create_subscription(Bool, "/is_in_room_done", self.is_in_room_done_callback, 5)
-        self.is_in_room_result_sub = self.create_subscription(Bool, "/is_in_room_result", self.is_in_room_result_callback, 5)
-        self.image_sub = self.create_subscription(Image, self.DATA['CAM_IMG_TOPIC'], self.image_callback, 5)
+        self.localization_sub = self.create_subscription(Localization2DMsg, self.DATA['LOCALIZATION_TOPIC'], self.localization_callback, 1, callback_group=self.callback_group)
+        self.nav_status_sub = self.create_subscription(NavStatusMsg, self.DATA['NAV_STATUS_TOPIC'], self.nav_status_callback, 1, callback_group=self.callback_group)
+        self.human_response_sub = self.create_subscription(String, self.DATA['HUMAN_RESPONSE_TOPIC'], self.human_response_callback, 10, callback_group=self.callback_group)
+        self.pick_status_sub = self.create_subscription(Bool, "/pick_goal_status", self.pick_status_callback, 5, callback_group=self.callback_group)
+        self.place_status_sub = self.create_subscription(Bool, "/place_goal_status", self.place_status_callback, 5, callback_group=self.callback_group)
+        self.image_sub = self.create_subscription(Image, self.DATA['CAM_IMG_TOPIC'], self.image_callback, 5, callback_group=self.callback_group)
         self.bridge = CvBridge()
         self.get_logger().info("======= Started all robot action servers =======")
     
     def pick_status_callback(self, msg):
-        # True = done, False = not done
-        self.pick_status = msg.data
+        self.pick_result = msg.data
+        self.pick_done_event.set()
 
     def place_status_callback(self, msg):
-        # True = done, False = not done
-        self.place_status = msg.data
+        self.place_result = msg.data
+        self.place_done_event.set()
 
-    def is_in_room_done_callback(self, msg):
-        # True = done, False = not done
-        self.is_in_room_done = msg.data
-
-    def is_in_room_result_callback(self, msg):
-        # Detection result: True = object present, False = not present
-        self.is_in_room_result = msg.data
+    def human_response_callback(self, msg):
+        self.ask_response = msg.data
+        self.ask_done_event.set()
 
     def nav_status_callback(self, msg):
         self.nav_status = msg.status
@@ -232,6 +221,123 @@ class RobotActions(Node):
         goal_handle.succeed()
         return result
 
+    def _load_openai_api_key(self) -> str:
+        env_key = os.getenv("OPENAI_API_KEY", "").strip()
+        if env_key:
+            return env_key
+
+        candidates = []
+        seen = set()
+
+        def add_candidate(path: Path):
+            resolved = path.expanduser()
+            if resolved not in seen:
+                candidates.append(resolved)
+                seen.add(resolved)
+
+        search_roots = []
+        for path in (Path(__file__).resolve(), Path.cwd().resolve()):
+            root = path if path.is_dir() else path.parent
+            search_roots.append(root)
+            search_roots.extend(root.parents)
+
+        for root in search_roots:
+            for codebotler_dir in (root / "codebotler", root / "src" / "codebotler"):
+                add_candidate(codebotler_dir / ".openai_api_key")
+                add_candidate(codebotler_dir / ".openai")
+            add_candidate(root / ".openai_api_key")
+            add_candidate(root / ".openai")
+
+        for path in candidates:
+            if path.is_file():
+                key = path.read_text().strip()
+                if key:
+                    return key
+
+        raise RuntimeError("OpenAI API key not found in OPENAI_API_KEY, src/codebotler/.openai_api_key, or src/codebotler/.openai")
+
+    def _get_openai_client(self):
+        if self.openai_client is None:
+            from openai import OpenAI
+            self.openai_client = OpenAI(api_key=self._load_openai_api_key())
+        return self.openai_client
+
+    def _latest_image_data_url(self) -> str:
+        img_bgr = self.bridge.imgmsg_to_cv2(self.latest_image_msg, desired_encoding='bgr8')
+        ok, encoded = cv2.imencode(".jpg", img_bgr, [int(cv2.IMWRITE_JPEG_QUALITY), 85])
+        if not ok:
+            raise RuntimeError("Failed to encode latest camera image as JPEG")
+        image_b64 = base64.b64encode(encoded.tobytes()).decode("ascii")
+        return f"data:image/jpeg;base64,{image_b64}"
+
+    def _ask_openai_is_in_room(self, obj: str) -> tuple[bool, str, float]:
+        client = self._get_openai_client()
+        image_url = self._latest_image_data_url()
+        object_name = obj.strip()
+
+        response = client.chat.completions.create(
+            model=self.openai_vlm_model,
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You answer object-presence questions for a mobile robot using only the provided camera image. "
+                        "Answer yes only when the requested object is clearly visible in the current room image. "
+                        "If the object is absent, occluded, too ambiguous, or only inferable from context, answer no."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": (
+                                f"Is there a {object_name} in this room? "
+                                "Return a structured yes/no answer based only on this image."
+                            ),
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": image_url,
+                                "detail": "low",
+                            },
+                        },
+                    ],
+                },
+            ],
+            response_format={
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "room_object_presence",
+                    "strict": True,
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "answer": {"type": "string", "enum": ["yes", "no"]},
+                            "confidence": {"type": "number"},
+                            "reason": {"type": "string"},
+                        },
+                        "required": ["answer", "confidence", "reason"],
+                        "additionalProperties": False,
+                    },
+                },
+            },
+            temperature=0,
+            max_completion_tokens=120,
+        )
+
+        message = response.choices[0].message
+        refusal = getattr(message, "refusal", None)
+        if refusal:
+            raise RuntimeError(f"OpenAI VLM refused the request: {refusal}")
+
+        data = json.loads(message.content)
+        answer = str(data["answer"]).strip().lower()
+        confidence = float(data["confidence"])
+        reason = str(data["reason"]).strip()
+        return answer == "yes", reason, confidence
+
     def is_in_room_callback(self, goal_handle):
         goal = goal_handle.request
         obj = goal.object
@@ -243,64 +349,18 @@ class RobotActions(Node):
             goal_handle.succeed()
             return answer
 
-        # Convert image to BGR for GSAM2
-        img_bgr = self.bridge.imgmsg_to_cv2(self.latest_image_msg, desired_encoding='bgr8')
-        
-        # Create GSAM2 service request
-        request = GroundedSAM2Srv.Request()
-        request.image = self.bridge.cv2_to_imgmsg(img_bgr, encoding='bgr8')
-        request.text_prompt = obj if obj.endswith('.') else obj + '.'
-        request.box_threshold = self.DATA['DINO']['box_threshold'] if 'DINO' in self.DATA else 0.35
-        request.text_threshold = self.DATA['DINO']['text_threshold'] if 'DINO' in self.DATA else 0.45
-        request.multimask_output = False
-        
-        # Call GSAM2 service
-        future = self.gsam2_client.call_async(request)
-        
-        # Wait for the future without spinning (we're already in a callback)
-        timeout = 30.0
-        start_time = time.time()
-        while not future.done() and (time.time() - start_time) < timeout:
-            time.sleep(0.01)
-        
-        if not future.done() or future.result() is None:
-            print(f"GSAM2 service call failed or timed out!")
+        try:
+            present, reason, confidence = self._ask_openai_is_in_room(obj)
+        except Exception as e:
+            self.get_logger().error(f"OpenAI VLM is_in_room failed: {e}")
             answer.result = False
             goal_handle.succeed()
             return answer
-        
-        response = future.result()
-        num_detections = int(response.n)
 
-        answer.result = (num_detections > 0)
+        answer.result = present
         goal_handle.succeed()
-        print(f"Detected {num_detections} instances of '{obj}'")
+        print(f"OpenAI VLM is_in_room('{obj}') -> {present} confidence={confidence:.2f}: {reason}")
         return answer
-
-    # def is_in_room_callback(self, goal_handle):
-    #     print(f"Received is_in_room request for {goal_handle.request.object}")
-    #     goal = goal_handle.request
-    #     result = IsInRoom.Result()
-        
-    #     # Extract object name from the goal
-    #     object_name = goal.object if hasattr(goal, 'object') else str(goal)
-        
-    #     # Reset status and publish the is_in_room request
-    #     self.is_in_room_done = False
-    #     self.is_in_room_result = False
-    #     is_in_room_msg = String()
-    #     is_in_room_msg.data = object_name
-    #     self.is_in_room_pub.publish(is_in_room_msg)
-
-    #     # Wait for is_in_room to complete
-    #     while not self.is_in_room_done:
-    #         time.sleep(0.05)
-
-    #     result.result = self.is_in_room_result
-    #     goal_handle.succeed()
-    #     self.is_in_room_done = False  # reset the status here
-    #     self.is_in_room_result = False
-    #     return result
 
     def say_callback(self, goal_handle):
         goal = goal_handle.request
@@ -328,24 +388,6 @@ class RobotActions(Node):
         espeak.wait()
         aplay.wait()
 
-    def sing(self, instruction: str):
-        # handle here
-        instruction = instruction.lower()
-        # yt-dlp -x -o "a.mp3" "https://www.youtube.com/watch?v=gm3-m2CFVWM" --audio-format mp3
-        msg = String()
-        msg.data = "Give me a second. Let me look up on Youtube!"
-        self.robot_say_pub.publish(msg)
-        
-        os.system("rm song.mp3")
-        os.system("rm output_audio.mp3")
-        os.system(f'yt-dlp -x -o "song.mp3" "ytsearch1:song:{instruction}" --audio-format mp3')
-        os.system("ffmpeg -i song.mp3 -ss 00:00:20 -t 00:00:15 -acodec copy output_audio.mp3")
-        os.system('mpg123 output_audio.mp3')
-        
-        msg = String()
-        msg.data = "Here is your free trial. If you want to hear more, PAY ME!"
-        self.robot_say_pub.publish(msg)
-
     def get_all_rooms_callback(self, goal_handle):
         result = GetAllRooms.Result()
         result.result = list(self.DATA['LOCATIONS'][self.DATA['MAP']].keys())
@@ -356,26 +398,67 @@ class RobotActions(Node):
         goal = goal_handle.request
         person = goal.person
         question = goal.question
-        options = goal.options
+        options = list(goal.options)
         result = Ask.Result()
-        response = "no answer"
-        if options == None:
-            print(f"Robot asks {person}: \"{question}\"")
+
+        print(f"Robot asks {person}: \"{question}\" with options {options}")
+        self.ask_response = None
+        self.ask_done_event.clear()
+
+        msg = String()
+        msg.data = json.dumps({
+            "person": person,
+            "question": question,
+            "options": options,
+        })
+        self.robot_ask_pub.publish(msg)
+
+        timeout_s = float(self.DATA.get('ASK_TIMEOUT_S', 120.0))
+        if self.ask_done_event.wait(timeout_s):
+            response = self.ask_response or "no answer"
         else:
-            print(f"Robot asks {person}: \"{question}\" with options {options}")
-            options.append(question)
-            msg = String()
-            msg.data = str(options)
-            self.robot_ask_pub.publish(msg)
-            # TODO: take care of transitioning this part properly yourselves
-            # ROS2 equivalent of wait_for_message needs to be implemented
-            response = "no answer"  # Placeholder - need ROS2 message waiting
+            response = "no answer"
+            self.get_logger().warning(f"ask timed out after {timeout_s:.1f}s: {question}")
+
+        self.ask_response = None
+        self.ask_done_event.clear()
         print(f"Response: {response}")
         word_len = len(question.split(" "))
         time.sleep(self.DATA['SLEEP_AFTER_ASK'] * word_len * 2)
         result.result = response
         goal_handle.succeed()
         return result
+
+    def _send_cobot_request_and_wait(
+        self,
+        *,
+        action_name: str,
+        request_pub,
+        request_text: str,
+        done_event: threading.Event,
+        result_attr: str,
+        timeout_s: float = 180.0,
+    ) -> tuple[bool, str]:
+        setattr(self, result_attr, None)
+        done_event.clear()
+
+        msg = String()
+        msg.data = request_text
+        request_pub.publish(msg)
+        self.get_logger().info(f"Published {action_name} request: {request_text}")
+
+        if not done_event.wait(timeout_s):
+            return False, f"{action_name} timed out waiting for Cobot result"
+
+        result = getattr(self, result_attr)
+        setattr(self, result_attr, None)
+        done_event.clear()
+
+        if result is None:
+            return False, f"{action_name} completed without a result"
+        if not result:
+            return False, f"{action_name} failed in Cobot"
+        return True, f"{action_name} completed"
 
     def pick_callback(self, goal_handle):
         print(f"Recieved a pick request:")
@@ -385,37 +468,41 @@ class RobotActions(Node):
         # Extract object name from the goal
         object_name = goal.obj if hasattr(goal, 'obj') else str(goal)
         
-        # Reset status and publish the pick request
-        self.pick_status = False
-        pick_msg = String()
-        pick_msg.data = object_name
-        self.pick_request_pub.publish(pick_msg)
-        
-        # Wait for pick to complete
-        while self.pick_status == False:
-            time.sleep(0.05)
+        success, message = self._send_cobot_request_and_wait(
+            action_name="pick",
+            request_pub=self.pick_request_pub,
+            request_text=object_name,
+            done_event=self.pick_done_event,
+            result_attr="pick_result",
+        )
 
-        goal_handle.succeed()
-        self.pick_status = False # reset the status here
+        result.success = success
+        result.message = message
+        if success:
+            goal_handle.succeed()
+        else:
+            self.get_logger().error(message)
+            goal_handle.abort()
         return result
 
     def place_callback(self, goal_handle):
         print(f"Received a place request")
         goal = goal_handle.request
         result = Place.Result()
-        
-        # Reset status and publish the place request
-        self.place_status = False
-        place_msg = String()
-        place_msg.data = "place"  # Simple trigger message
-        self.place_request_pub.publish(place_msg)
-        
-        # Wait for place to complete
-        while self.place_status == False:
-            time.sleep(0.05)
 
-        goal_handle.succeed()
-        self.place_status = False  # reset the status here
+        success, message = self._send_cobot_request_and_wait(
+            action_name="place",
+            request_pub=self.place_request_pub,
+            request_text=goal.obj if hasattr(goal, 'obj') and goal.obj else "place",
+            done_event=self.place_done_event,
+            result_attr="place_result",
+        )
+
+        if success:
+            goal_handle.succeed()
+        else:
+            self.get_logger().error(message)
+            goal_handle.abort()
         return result
 
 
