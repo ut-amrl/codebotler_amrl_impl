@@ -1,6 +1,6 @@
 # CodeBotler AMRL Implementation
 
-ROS 2 action-server implementation for the CodeBotler deployment on the AMRL Jackal/Cobot stack.
+ROS 2 action-server implementation for the CodeBotler deployment on the AMRL Cobot stack.
 
 ## Runtime
 
@@ -15,7 +15,7 @@ conda run --no-capture-output -n codebotler python3 gui.py
 `actions.py` exposes the CodeBotler action contract: go to, get current location, get all rooms, object presence, say, ask, pick, and place.
 Use `python3 actions.py --vlm-model <model>` to override the OpenAI vision model for `is_in_room`; the default is `gpt-5-mini`.
 
-`gui.py` displays ask prompts, speaks ask questions through `espeak`/`aplay`, and publishes the selected answer back to `actions.py`.
+`gui.py` displays ask prompts and publishes the selected answer back to `actions.py`.
 
 ## Requirements
 

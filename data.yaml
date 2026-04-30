@@ -1,15 +1,24 @@
 ROBOT_SAY_TOPIC: "/robot_say"
 ROBOT_ASK_TOPIC: "/robot_ask"
 HUMAN_RESPONSE_TOPIC: "/human_response"
+PICK_REQUEST_TOPIC: "/pick_request"
+PICK_STATUS_TOPIC: "/pick_goal_status"
+PICK_TIMEOUT_S: 180.0
+PLACE_REQUEST_TOPIC: "/place_request"
+PLACE_STATUS_TOPIC: "/place_goal_status"
+PLACE_TIMEOUT_S: 180.0
 MAP: "labapt"
 NAV_STATUS_TOPIC: "/basenav_t/navigation_goal_status"
 NAV_GOAL_TOPIC: "/basenav_t/move_base_simple/goal_amrl"
+NAV_RESET_TOPIC: "/basenav_t/reset_nav_goals"
+NAV_START_TIMEOUT_S: 10.0
+NAV_COMPLETE_TIMEOUT_S: 360.0
 CAM_IMG_TOPIC: "/rgb/image_raw"
+CAM_IMG_WAIT_TIMEOUT_S: 5.0
+CAM_IMG_MAX_AGE_S: 5.0
 LOCALIZATION_TOPIC: "/basenav_t/localization"
-DIST_THRESHOLD: 1.25
-SLEEP_AFTER_SAY: 0.24
-SLEEP_AFTER_ASK: 0.1
-ASK_TIMEOUT_S: 120.0
+DIST_THRESHOLD: 0.3
+ASK_TIMEOUT_S: 240.0
 
 # ------------------------------------------------------------
 ###### Format: all letters lower case, no 's or _ or - etc
@@ -19,7 +28,7 @@ LOCATIONS:
     kitchen sink: [6.40, -10.88, 1.70]
     microwave: [7.52, -10.182, 1.58]
     kitchen shelf: [9.78, -10.81, 1.66]
-    living room: [7.18,  -22.6, 0.0]
+    living room: [7.59,  -22.69, 0.04]
     # living room: [3.35,  -12.2, 0.0]
     # living room table: [3.35,  -12.2, 0.0]
     # snack table: [6.65, -6.38, -1.57]
